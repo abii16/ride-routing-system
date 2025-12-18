@@ -104,6 +104,11 @@
       const phone = document.getElementById('phone').value;
       const msg = document.getElementById('msg');
 
+      if (role === "DRIVER") {
+          window.location.href = "driver-register.html";
+          return;
+      }
+
       if (!user || !pass) {
         msg.style.display = 'block';
         msg.innerText = "Please fill all fields";

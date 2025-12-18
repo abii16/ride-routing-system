@@ -41,9 +41,33 @@ public class JSONUtil {
         return json.toString();
     }
     
+    public static String toJSON(java.util.List<Map<String, Object>> list) {
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) json.append(",");
+            json.append(mapToJSON(list.get(i)));
+        }
+        json.append("]");
+        return json.toString();
+    }
+
+    public static String mapToJSON(Map<String, Object> map) {
+        StringBuilder json = new StringBuilder("{");
+        int count = 0;
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (count > 0) json.append(",");
+            json.append("\"").append(entry.getKey()).append("\":");
+            json.append(valueToJSON(entry.getValue()));
+            count++;
+        }
+        json.append("}");
+        return json.toString();
+    }
+    
     /**
      * Convert a value to JSON representation
      */
+
     private static String valueToJSON(Object value) {
         if (value == null) {
             return "null";

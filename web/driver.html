@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driver App | Gebeta Maps</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; font-family: 'Outfit', sans-serif; height: 100vh; display: flex; flex-direction: column; }
         
@@ -40,7 +39,7 @@
             <button onclick="login()">Login</button>
             <div id="login-msg" style="margin-top:15px; text-align:center; color:#ef4444; font-size:14px;"></div>
         </div>
-        <p style="color:#666; font-size:12px; margin-top:20px;">Registration is managed by Admin only.</p>
+        <p style="color:#94a3b8; font-size:13px; margin-top:20px;">New driver? <a href="driver-register.html" style="color:#10b981; text-decoration:none; font-weight:bold;">Register Here</a></p>
     </div>
 
     <!-- Main Dashboard -->
@@ -55,7 +54,6 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let map, marker;
         let isOnline = false;
@@ -85,7 +83,7 @@
                     driverName = u;
                     document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('dashboard').style.display = 'flex';
-                    initMap();
+                    // map initialized via callback
                 } else {
                     msg.innerText = "Access Denied: " + (data.error || "Invalid Credentials");
                 }
@@ -95,14 +93,12 @@
             }
         }
 
-        // --- Map & Driver Logic (Same as before) ---
+        // --- Map & Driver Logic ---
         function initMap() {
-            map = L.map('map').setView([9.0060, 38.7640], 13);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors',
-                maxZoom: 19
-            }).addTo(map);
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: {lat: 9.0060, lng: 38.7640},
+                zoom: 13
+            });
         }
 
         function toggleStatus() {
@@ -124,7 +120,19 @@
                 });
 
                 // Add marker
-                marker = L.marker([lat, lon]).addTo(map).bindPopup("You (" + driverName + ")").openPopup();
+                marker = new google.maps.Marker({
+                    position: {lat: lat, lng: lon},
+                    map: map,
+                    title: "You (" + driverName + ")"
+                });
+                
+                const infoWindow = new google.maps.InfoWindow({
+                    content: "You (" + driverName + ")"
+                });
+                
+                marker.addListener("click", () => {
+                   infoWindow.open(map, marker);
+                });
                 
                 isOnline = true;
                 btn.innerText = "Go Offline";
@@ -137,5 +145,6 @@
             }
         }
     </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyApQOktBocnX7Veuuj-gK-hY14cCWg13_k&callback=initMap" async defer></script>
 </body>
 </html>

@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | Ride System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --primary: #10b981; --dark: #1f2937; --light: #f3f4f6; }
         body { margin: 0; font-family: 'Inter', sans-serif; background: var(--light); display: flex; height: 100vh; overflow: hidden; }
@@ -43,7 +42,7 @@
         
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
+        
         /* Logs Panel */
         .logs { 
             height: 150px; background: black; color: #00ff00; 
@@ -100,8 +99,9 @@
     <div class="sidebar">
         <h1>🚕 Ride Admin</h1>
         <div class="nav-item active">Live Map</div>
-        <div class="nav-item">Drivers Registry</div>
+        <div class="nav-item">Driver Verification</div>
         <div class="nav-item">Ride History</div>
+
         <div class="nav-item">Settings</div>
         
         <div style="margin-top: auto; font-size: 12px; color: #6b7280;">
@@ -113,7 +113,18 @@
     <div class="main">
         <!-- Top Stats Bar -->
         <div class="stats-bar">
-            <!-- stats... -->
+             <div class="stat-card">
+                 <span class="stat-val" id="stat-drivers">0</span>
+                 <span class="stat-label">Active Drivers</span>
+             </div>
+             <div class="stat-card">
+                 <span class="stat-val" id="stat-passengers">0</span>
+                 <span class="stat-label">Active Passengers</span>
+             </div>
+             <div class="stat-card">
+                 <span class="stat-val" id="stat-rides">0</span>
+                 <span class="stat-label">Total Rides</span>
+             </div>
         </div>
 
         <div id="view-map" class="view-section" style="flex:1; display:flex; flex-direction:column; position:relative;">
@@ -145,30 +156,22 @@
             </div>
         </div>
 
-        <!-- VIEW: REGISTRY -->
-        <div id="view-registry" class="view-section" style="display:none; padding: 40px;">
-            <h2>📝 Register New Driver</h2>
-            <div style="background:white; padding:30px; border-radius:12px; max-width:400px; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
-                <div class="input-group" style="margin-bottom:15px;">
-                    <label>Username</label><br>
-                    <input type="text" id="reg-username" style="width:100%; padding:10px; margin-top:5px; border:1px solid #ddd; border-radius:6px;">
-                </div>
-                <div class="input-group" style="margin-bottom:15px;">
-                    <label>Password</label><br>
-                    <input type="password" id="reg-password" style="width:100%; padding:10px; margin-top:5px; border:1px solid #ddd; border-radius:6px;">
-                </div>
-                <div class="input-group" style="margin-bottom:20px;">
-                    <label>Phone</label><br>
-                    <input type="text" id="reg-phone" style="width:100%; padding:10px; margin-top:5px; border:1px solid #ddd; border-radius:6px;">
-                </div>
-                <button onclick="registerDriver()" style="width:100%; padding:12px; background:#10b981; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">Register Driver</button>
-                <div id="reg-status" style="margin-top:15px; text-align:center; font-size:14px;"></div>
+        <!-- VIEW: VERIFICATION -->
+        <div id="view-registry" class="view-section" style="display:none; padding: 40px; overflow-y:auto;">
+            <h2>📋 Pending Driver Applications</h2>
+            <div id="pending-drivers-empty" style="background:white; padding:40px; border-radius:12px; text-align:center; color:#6b7280; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+                No pending applications at the moment.
+            </div>
+            <div id="pending-drivers-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px;">
+                <!-- Cards will be injected here -->
             </div>
         </div>
 
+
         <!-- Hidden Data Sync -->
         <span id="driver-count" style="display:none;">0</span>
-        <!-- ... -->
+        <span id="passenger-count" style="display:none;">0</span>
+
         <!-- VIEW: ACTIVE RIDES -->
         <div id="view-rides" class="view-section" style="display:none; padding:40px; overflow-y:auto;">
              <h2>🚖 Active Ride Requests</h2>
@@ -188,8 +191,8 @@
 
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/map.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyApQOktBocnX7Veuuj-gK-hY14cCWg13_k&callback=initMap" async defer></script>
     <script>
         // Navigation Logic
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -201,12 +204,76 @@
                 document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
                 
                 if (item.innerText.includes('Live Map')) document.getElementById('view-map').style.display = 'flex';
-                if (item.innerText.includes('Drivers Registry')) document.getElementById('view-registry').style.display = 'block';
+                if (item.innerText.includes('Driver Verification')) {
+                    document.getElementById('view-registry').style.display = 'block';
+                    fetchPendingDrivers();
+                }
                 if (item.innerText.includes('Ride History')) document.getElementById('view-rides').style.display = 'block';
             });
         });
+        
+        async function fetchPendingDrivers() {
+            const list = document.getElementById('pending-drivers-list');
+            const empty = document.getElementById('pending-drivers-empty');
+            
+            try {
+                const res = await fetch('/api/admin/pending-drivers');
+                const response = await res.json();
+                const drivers = JSON.parse(response.payload.drivers || "[]");
+                
+                if (drivers.length === 0) {
+                    list.style.display = 'none';
+                    empty.style.display = 'block';
+                } else {
+                    empty.style.display = 'none';
+                    list.style.display = 'grid';
+                    list.innerHTML = drivers.map(d => `
+                        <div style="background:white; padding:20px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.05); border-top: 4px solid #3b82f6;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <h3 style="margin:0; color:#1f2937;">${d.full_name || 'Incomplete Profile'}</h3>
+                                <span style="background:#dbeafe; color:#1e40af; font-size:11px; padding:4px 8px; border-radius:20px; font-weight:bold;">PENDING</span>
+                            </div>
+                            <p style="margin:10px 0; color:#6b7280; font-size:14px;">
+                                👤 <b>Username:</b> ${d.username}<br>
+                                📞 <b>Phone:</b> ${d.phone}<br>
+                                📧 <b>Email:</b> ${d.email || 'N/A'}<br>
+                                🆔 <b>National ID:</b> ${d.id_number || 'N/A'}<br>
+                                🎂 <b>DOB:</b> ${d.dob || 'N/A'}<br>
+                                🚻 <b>Gender:</b> ${d.gender || 'N/A'}
+                            </p>
+                            <div style="background:#f9fafb; padding:10px; border-radius:8px; margin:15px 0; font-size:13px;">
+                                <b style="color:#4b5563;">Vehicle Information:</b><br>
+                                ${d.vehicle_model} (${d.vehicle_year}) - <b>${d.license_plate}</b><br>
+                                <small>License: ${d.license_number} (${d.license_type})</small>
+                            </div>
+                            <div style="display:flex; gap:10px;">
+                                <button onclick="approveDriver('${d.username}', true)" style="flex:1; padding:10px; background:#10b981; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">Approve</button>
+                                <button onclick="approveDriver('${d.username}', false)" style="flex:1; padding:10px; background:#ef4444; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">Reject</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) { console.error(e); }
+        }
 
-        // ... (Register Driver Logic skipped) ...
+        async function approveDriver(username, approve) {
+            if(!confirm(`${approve ? 'Approve' : 'Reject'} ${username}?`)) return;
+            try {
+                const res = await fetch('/api/admin/approve-driver', {
+                    method: 'POST',
+                    body: JSON.stringify({type: "APPROVE_DRIVER", payload: {username: username, approve: approve}})
+                });
+                const data = await res.json();
+                if(data.payload && data.payload.success) {
+                    alert("✅ Action recorded successfully!");
+                    fetchPendingDrivers();
+                    updateMap();
+                } else {
+                    alert("❌ Error: " + (data.payload?.error || "Unknown"));
+                }
+            } catch(e) { alert("Network Error"); }
+        }
+
 
         const originalUpdate = updateMap; // Hook into map.js update
         updateMap = async function() {
@@ -218,15 +285,16 @@
                  const passengers = JSON.parse(window.latestMapData.passengers || "[]");
                  const rides = JSON.parse(window.latestMapData.rides || "[]");
                  
-                 // Update generic stats if elements exist
-                 // ...
+                 document.getElementById('stat-drivers').innerText = drivers.length;
+                 document.getElementById('stat-passengers').innerText = passengers.length;
+                 document.getElementById('stat-rides').innerText = rides.length;
 
                  // 2. Update Active Rides Table
                  const tbody = document.getElementById('rides-list');
                  
                  // Clear old 'candidate' lines
                  if(window.candidateLines) {
-                     window.candidateLines.forEach(l => map.removeLayer(l));
+                     window.candidateLines.forEach(l => l.setMap(null));
                  }
                  window.candidateLines = [];
 
@@ -259,10 +327,15 @@
                                         <button onclick="manualAssign(${r.id}, '${nearest.username}', ${r.p_lat}, ${r.p_lon})" style="background:#10b981; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Assign</button>
                                     </div>`;
                                  
-                                 // Draw suggestion line
-                                 if (document.getElementById('view-map').style.display !== 'none') {
-                                     const line = L.polyline([[r.p_lat, r.p_lon], [nearest.lat, nearest.lng]], 
-                                         {color: 'orange', dashArray: '5, 5', opacity: 0.6, weight: 2}).addTo(map);
+                                 // Draw suggestion line (if map is visible and initialized)
+                                 if (document.getElementById('view-map').style.display !== 'none' && typeof map !== 'undefined' && map) {
+                                     const line = new google.maps.Polyline({
+                                        path: [{lat: r.p_lat, lng: r.p_lon}, {lat: nearest.lat, lng: nearest.lng}],
+                                        strokeColor: 'orange', 
+                                        strokeOpacity: 0.6, 
+                                        strokeWeight: 2,
+                                        map: map
+                                     });
                                      window.candidateLines.push(line);
                                  }
                              } else {
@@ -329,9 +402,11 @@
 
         function log(msg) {
             const el = document.getElementById('sys-logs');
-            const time = new Date().toLocaleTimeString();
-            el.innerHTML += `> [${time}] ${msg}<br>`;
-            el.scrollTop = el.scrollHeight;
+            if (el) {
+                const time = new Date().toLocaleTimeString();
+                el.innerHTML += `> [${time}] ${msg}<br>`;
+                el.scrollTop = el.scrollHeight;
+            }
         }
     </script>
 </body>

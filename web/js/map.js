@@ -1,18 +1,13 @@
 const API_URL = "/api/mapdata";
-// REPLACE WITH YOUR GEBETA API KEY
-const GEBETA_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55bmFtZSI6ImRlYnJlIGJlcmhhbiB1bml2ZXJzaXR5IiwiZGVzY3JpcHRpb24iOiI5YTkzOTJiNy1mMzQxLTQ3MTctOTMzYy1lMzJkNGIzYmJjMjkiLCJpZCI6IjlkMjBlNmJkLTEzOWQtNGM3OC05ZTBlLWZlZGUzZjQ1ZWZkZSIsImlzc3VlZF9hdCI6MTc2NTkxNDE2NiwiaXNzdWVyIjoiaHR0cHM6Ly9tYXBhcGkuZ2ViZXRhLmFwcCIsImp3dF9pZCI6IjAiLCJzY29wZXMiOlsiRkVBVFVSRV9BTEwiXSwidXNlcm5hbWUiOiJTdGF5SGVyZSJ9.mcVl25CuabEJSFGwFz4O8N6OznOO4dZS1Kb0hSO35_I";
 
 let map;
 let markers = {}; 
 
 function initMap() {
-    map = L.map('map').setView([9.0060, 38.7640], 13);
-    
-    // Fallback to OSM
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap',
-        maxZoom: 19
-    }).addTo(map);
+    map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 9.0060, lng: 38.7640 },
+        zoom: 13,
+    });
     
     intervalId = setInterval(updateMap, 2000);
     updateMap();
@@ -50,28 +45,34 @@ async function updateMap() {
 
 function updateMarkers(list, type) {
     list.forEach(item => {
-        let pos = [item.latitude, item.longitude];
+        let pos = { lat: item.latitude, lng: item.longitude };
         
         if (markers[item.username]) {
-            markers[item.username].setLatLng(pos);
+            markers[item.username].setPosition(pos);
         } else {
             let color = type === 'driver' ? (item.available ? 'green' : 'red') : 'blue';
-            let icon = createIcon(color);
-                
-            markers[item.username] = L.marker(pos, { icon: icon })
-                .addTo(map)
-                .bindPopup(item.username);
+            
+            markers[item.username] = new google.maps.Marker({
+                position: pos,
+                map: map,
+                title: item.username,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 8,
+                    fillColor: color,
+                    fillOpacity: 1,
+                    strokeWeight: 2,
+                    strokeColor: "white"
+                }
+            });
+            
+            const infoWindow = new google.maps.InfoWindow({
+                content: item.username
+            });
+
+            markers[item.username].addListener("click", () => {
+                infoWindow.open(map, markers[item.username]);
+            });
         }
     });
 }
-
-function createIcon(color) {
-    return L.divIcon({
-        className: 'custom-icon',
-        html: `<div style="background:${color};width:20px;height:20px;border-radius:50%;border:2px solid white;box-shadow:0 0 5px black;"></div>`,
-        iconSize: [20, 20]
-    });
-}
-
-// Start
-initMap();

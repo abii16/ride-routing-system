@@ -234,31 +234,7 @@ footer strong {
     color: #60a5fa;
 }
 
-/* Leaflet custom styling */
-.leaflet-popup-content-wrapper {
-    border-radius: 12px;
-    padding: 5px;
-}
 
-.leaflet-popup-content {
-    margin: 15px;
-    font-size: 14px;
-}
-
-.popup-title {
-    font-size: 18px;
-    font-weight: bold;
-    color: #1e40af;
-    margin-bottom: 8px;
-}
-
-.popup-info {
-    line-height: 1.6;
-}
-
-.popup-info strong {
-    color: #374151;
-}
 
 /* Responsive Design */
 @media (max-width: 768px) {

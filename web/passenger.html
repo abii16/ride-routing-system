@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Passenger App | Gebeta Maps</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; height: 100vh; }
         
@@ -58,7 +57,6 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let isRegisterMode = false;
         let passengerName = "";
@@ -66,11 +64,12 @@
         let coords = { pickup: null, dest: null };
         let markers = {};
         let routeLayer;
-
-        const GEBETA_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55bmFtZSI6ImRlYnJlIGJlcmhhbiB1bml2ZXJzaXR5IiwiZGVzY3JpcHRpb24iOiI5YTkzOTJiNy1mMzQxLTQ3MTctOTMzYy1lMzJkNGIzYmJjMjkiLCJpZCI6IjlkMjBlNmJkLTEzOWQtNGM3OC05ZTBlLWZlZGUzZjQ1ZWZkZSIsImlzc3VlZF9hdCI6MTc2NTkxNDE2NiwiaXNzdWVyIjoiaHR0cHM6Ly9tYXBhcGkuZ2ViZXRhLmFwcCIsImp3dF9pZCI6IjAiLCJzY29wZXMiOlsiRkVBVFVSRV9BTEwiXSwidXNlcm5hbWUiOiJTdGF5SGVyZSJ9.mcVl25CuabEJSFGwFz4O8N6OznOO4dZS1Kb0hSO35_I"; 
-
-        // ... (Auth Logic skipped for brevity, remains same) ...
-        function toggleAuthMode() { /* ... unchanged ... */
+        
+        let directionsService;
+        let directionsRenderer;
+        
+        // Let's add back the Auth Logic variables and functions here properly
+        function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
             document.querySelector('#auth-screen button').innerText = isRegisterMode ? "Register" : "Login";
             document.querySelector('#auth-screen .switch-link').innerText = isRegisterMode ? "Have an account? Login" : "New here? Create Account";
@@ -78,7 +77,7 @@
             document.getElementById('auth-msg').innerText = "";
         }
 
-        async function handleAuth() { /* ... unchanged ... */
+        async function handleAuth() {
             const u = document.getElementById('auth-user').value;
             const p = document.getElementById('auth-pass').value;
             const msg = document.getElementById('auth-msg');
@@ -100,7 +99,6 @@
                 const response = await res.json();
                 const data = response.payload || response; 
                 
-                // Strict Login Check
                 let allowed = false;
                 if (isRegisterMode) {
                     allowed = data.success;
@@ -112,7 +110,7 @@
                     passengerName = u;
                     document.getElementById('auth-screen').style.display = 'none';
                     document.getElementById('app-view').style.display = 'block';
-                    initMap();
+                    // Map initialized via callback
                 } else {
                     msg.innerText = "Error: " + (data.error || "Invalid Credentials");
                 }
@@ -121,17 +119,48 @@
             }
         }
 
+        const ET_BOUNDS = {
+            north: 14.9,
+            south: 3.4,
+            west: 33.0,
+            east: 48.0,
+        };
+
+        function isLocationInEthiopia(lat, lng) {
+            return lat >= ET_BOUNDS.south && lat <= ET_BOUNDS.north && 
+                   lng >= ET_BOUNDS.west && lng <= ET_BOUNDS.east;
+        }
+
         function initMap() {
-            map = L.map('map').setView([9.0060, 38.7640], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap | Routing: Gebeta' }).addTo(map);
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: {lat: 9.0060, lng: 38.7640},
+                zoom: 13,
+                minZoom: 6, // Prevents zooming out to see the whole world
+                restriction: {
+                    latLngBounds: ET_BOUNDS,
+                    strictBounds: true
+                }
+            });
             
-            // Allow map click to set active field
-            map.on('click', function(e) {
-                // If pickup is empty, set pickup. Else set dest.
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer();
+            directionsRenderer.setMap(map);
+            
+            map.addListener('click', function(e) {
+                const lat = e.latLng.lat();
+                const lng = e.latLng.lng();
+                
+                if (!isLocationInEthiopia(lat, lng)) {
+                    document.getElementById('status').innerText = "⚠️ Forbidden: You can only select locations within Ethiopia.";
+                    // Pan back to center of Ethiopia if they are lost
+                    map.setCenter({lat: 9.0060, lng: 38.7640});
+                    return;
+                }
+
                 if (!coords.pickup) {
-                    updateLocation('pickup', e.latlng.lat, e.latlng.lng, "Map Click");
+                    updateLocation('pickup', lat, lng, "Map Click");
                 } else {
-                    updateLocation('dest', e.latlng.lat, e.latlng.lng, "Map Click");
+                    updateLocation('dest', lat, lng, "Map Click");
                 }
             });
         }
@@ -142,55 +171,100 @@
             const status = document.getElementById('status');
             
             if (!query) {
-                // No text? Use map center!
                 const center = map.getCenter();
-                updateLocation(type, center.lat, center.lng, "...From Map Center");
+                updateLocation(type, center.lat(), center.lng(), "...From Map Center");
                 return;
             }
             
-            // Check if it's already coords
             if (query.includes(",")) {
                 const parts = query.split(",");
                 if(parts.length === 2 && !isNaN(parts[0])) {
-                    updateLocation(type, parseFloat(parts[0]), parseFloat(parts[1]), query);
+                    const lat = parseFloat(parts[0]);
+                    const lon = parseFloat(parts[1]);
+                    if (isLocationInEthiopia(lat, lon)) {
+                        updateLocation(type, lat, lon, query);
+                    } else {
+                         status.innerText = "⚠️ Location outside Ethiopia!";
+                    }
                     return;
                 }
             }
 
-            status.innerText = "🔍 Searching: " + query + "...";
+            status.innerText = "🔍 Searching in Ethiopia: " + query + "...";
             
-            try {
-                // Call Geocoding API
-                const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
-                const data = await res.json();
-                
-                if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lon = parseFloat(data[0].lon);
-                    const name = data[0].display_name;
-                    
-                    updateLocation(type, lat, lon, name); // Helper function
-                    status.innerText = "✅ Found: " + name;
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ 
+                address: query,
+                componentRestrictions: { country: 'ET' } 
+            }, async (result, gStatus) => {
+                if (gStatus === 'OK' && result[0]) {
+                    const loc = result[0].geometry.location;
+                    processGeocodeResult(type, { lat: loc.lat(), lon: loc.lng(), display_name: result[0].formatted_address });
                 } else {
-                    status.innerText = "❌ Address not found. Try dragging map.";
+                    try {
+                        const res = await fetch(`/api/geocode?q=${encodeURIComponent(query + " Ethiopia")}`);
+                        if (!res.ok) throw new Error("Backend Fail");
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                            processGeocodeResult(type, data[0]);
+                        } else {
+                             throw new Error("No results");
+                        }
+                    } catch(e) {
+                        try {
+                            const fallbackRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=et&q=${encodeURIComponent(query)}`);
+                            const fallbackData = await fallbackRes.json();
+                            if (fallbackData && fallbackData.length > 0) {
+                                processGeocodeResult(type, fallbackData[0]);
+                            } else {
+                                status.innerText = "❌ Location not found in Ethiopia.";
+                            }
+                        } catch (err2) {
+                            status.innerText = "Geocode Error: Check connection";
+                        }
+                    }
                 }
-            } catch(e) {
-                status.innerText = "Geocode Error: Check connection";
-            }
+            });
+        }
+
+        function processGeocodeResult(type, item) {
+             const lat = parseFloat(item.lat || item.latitude);
+             const lon = parseFloat(item.lon || item.longitude);
+             
+             if (!isLocationInEthiopia(lat, lon)) {
+                 document.getElementById('status').innerText = "⚠️ Location found is outside Ethiopia!";
+                 return;
+             }
+             
+             const name = item.display_name || item.formatted_address || "Selected Location";
+             document.getElementById('status').innerText = "✅ Found: " + name;
+             updateLocation(type, lat, lon, name); 
         }
         
         function updateLocation(type, lat, lon, label) {
-             coords[type] = { lat: lat, lon: lon };
+             // ABSOLUTE BLOCK: Ensure no user can set a location outside Ethiopia
+             if (!isLocationInEthiopia(lat, lon)) {
+                 document.getElementById('status').innerText = "⚠️ SYSTEM BLOCK: Service only available in Ethiopia.";
+                 map.setCenter({lat: 9.0060, lng: 38.7640});
+                 return;
+             }
+             coords[type] = { lat: lat, lng: lon };
              
-             // Update Input UI
-             document.getElementById(type).value = label.substring(0, 40) + (label.length>40?"...":""); // Show address
+             document.getElementById(type).value = label.substring(0, 40) + (label.length>40?"...":""); 
              
-             // Map UI
-             if (markers[type]) map.removeLayer(markers[type]);
-             markers[type] = L.marker([lat, lon]).addTo(map).bindPopup(type === 'pickup' ? "Start" : "End").openPopup();
-             map.setView([lat, lon], 14);
+             if (markers[type]) markers[type].setMap(null);
+             markers[type] = new google.maps.Marker({
+                 position: {lat: lat, lng: lon},
+                 map: map,
+                 title: type === 'pickup' ? "Start" : "End"
+             });
              
-             // Check if ready
+             const infoWindow = new google.maps.InfoWindow({ content: type === 'pickup' ? "Start" : "End" });
+             infoWindow.open(map, markers[type]);
+
+             map.setCenter({lat: lat, lng: lon});
+             map.setZoom(14);
+             
              if(coords.pickup && coords.dest) {
                  document.getElementById('requestBtn').disabled = false;
                  document.getElementById('requestBtn').style.background = "#10b981";
@@ -202,63 +276,67 @@
         async function drawRoute() {
             if (!coords.pickup || !coords.dest) return;
             
-            // Remove existing route
-            if (routeLayer) map.removeLayer(routeLayer);
+            if (routeLayer) routeLayer.setMap(null);
+            
+            // 1. Draw Straight Line PREVIEW immediately
+            const straightPath = [
+                {lat: coords.pickup.lat, lng: coords.pickup.lng},
+                {lat: coords.dest.lat, lng: coords.dest.lng}
+            ];
+            routeLayer = new google.maps.Polyline({
+                path: straightPath,
+                geodesic: true,
+                strokeColor: '#3b82f6',
+                strokeOpacity: 0.6,
+                strokeWeight: 4,
+                map: map
+            });
+            
+            const bounds = new google.maps.LatLngBounds();
+            straightPath.forEach(p => bounds.extend(p));
+            map.fitBounds(bounds);
             
             document.getElementById('status').innerText = "📍 Calculating Route...";
-            
+
+            // 2. Try Gebeta (Backend Proxy) - Efficient for local region
             try {
-                // Construct API URL
-                const url = `/api/direction?originLat=${coords.pickup.lat}&originLon=${coords.pickup.lon}&destLat=${coords.dest.lat}&destLon=${coords.dest.lon}&apiKey=${GEBETA_API_KEY}`;
-                
-                const res = await fetch(url);
+                const gebetaUrl = `/api/direction?originLat=${coords.pickup.lat}&originLon=${coords.pickup.lng}&destLat=${coords.dest.lat}&destLon=${coords.dest.lng}&apiKey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55bmFtZSI6ImRlYnJlIGJlcmhhbiB1bml2ZXJzaXR5IiwiZGVzY3JpcHRpb24iOiI5YTkzOTJiNy1mMzQxLTQ3MTctOTMzYy1lMzJkNGIzYmJjMjkiLCJpZCI6IjlkMjBlNmJkLTEzOWQtNGM3OC05ZTBlLWZlZGUzZjQ1ZWZkZSIsImlzc3VlZF9hdCI6MTc2NTkxNDE2NiwiaXNzdWVyIjoiaHR0cHM6Ly9tYXBhcGkuZ2ViZXRhLmFwcCIsImp3dF9pZCI6IjAiLCJzY29wZXMiOlsiRkVBVFVSRV9BTEwiXSwidXNlcm5hbWUiOiJTdGF5SGVyZSJ9.mcVl25CuabEJSFGwFz4O8N6OznOO4dZS1Kb0hSO35_I`;
+                const res = await fetch(gebetaUrl);
                 const data = await res.json();
                 
                 let latlngs = [];
+                if (data.direction) latlngs = data.direction;
+                else if (Array.isArray(data)) latlngs = data;
                 
-                // Parse Gebeta Response (Robust handling)
-                if (Array.isArray(data)) {
-                    // Assume [[lat,lon], ...]
-                    latlngs = data; 
-                } else if (data.direction) {
-                    // Some versions return { direction: [[...]] }
-                    latlngs = data.direction;
-                } else if (data.routes && data.routes[0]) {
-                     // Check for encoded geometry or coordinates
-                     if (data.routes[0].geometry && data.routes[0].geometry.coordinates) {
-                         latlngs = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]); // GeoJSON [lon, lat] -> Leaflet [lat, lon]
-                     }
+                if (latlngs.length > 0) {
+                    const path = latlngs.map(p => ({ lat: p[0], lng: p[1] }));
+                    routeLayer.setPath(path);
+                    routeLayer.setOptions({ strokeColor: '#10b981', strokeOpacity: 0.9, strokeWeight: 6 });
+                    document.getElementById('status').innerText = "✅ Route Set (Gebeta)";
+                    return;
                 }
+            } catch(e) { console.warn("Gebeta failed, trying OSRM..."); }
 
-                // Fallback: Straight Line if parsing failed but we just want to show something
-                if (latlngs.length === 0) {
-                    latlngs = [
-                        [coords.pickup.lat, coords.pickup.lon],
-                        [coords.dest.lat, coords.dest.lon]
-                    ];
+            // 3. Try OSRM (Global Open Source)
+            try {
+                const p1 = coords.pickup.lng + "," + coords.pickup.lat;
+                const p2 = coords.dest.lng + "," + coords.dest.lat;
+                const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${p1};${p2}?overview=full&geometries=geojson`);
+                const osrmData = await osrmRes.json();
+                if(osrmData.routes && osrmData.routes.length > 0) {
+                    const geojson = osrmData.routes[0].geometry.coordinates;
+                    const path = geojson.map(c => ({ lat: c[1], lng: c[0] }));
+                    routeLayer.setPath(path);
+                    routeLayer.setOptions({ strokeColor: '#10b981', strokeOpacity: 0.9, strokeWeight: 6 });
+                    document.getElementById('status').innerText = "✅ Route Set (OSRM)";
+                    return;
                 }
-                
-                // Draw Polyline
-                routeLayer = L.polyline(latlngs, {color: '#10b981', weight: 5, opacity: 0.7}).addTo(map);
-                map.fitBounds(routeLayer.getBounds(), {padding: [50, 50]});
-                
-                document.getElementById('status').innerText = "✅ Route Set";
-                
-            } catch (e) {
-                console.error(e);
-                // Fallback straight line on error
-                routeLayer = L.polyline([
-                    [coords.pickup.lat, coords.pickup.lon],
-                    [coords.dest.lat, coords.dest.lon]
-                ], {color: 'blue', dashArray: '5, 10'}).addTo(map);
-                map.fitBounds(routeLayer.getBounds());
-                document.getElementById('status').innerText = "⚠️ Route Preview (Straight Line)";
-            }
+            } catch(e) { console.error("OSRM failed:", e); }
+
+            document.getElementById('status').innerText = "⚠️ Route Preview (Direct)";
         }
 
-
         function requestRide() {
-            // Send Request to Backend
             fetch('/api/passenger', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -269,7 +347,6 @@
                         pickupLon: coords.pickup.lon,
                         destLat: coords.dest.lat, 
                         destLon: coords.dest.lon,
-                        // Add address text for future use if needed, but critical is lat/lon matching backend
                         pickupAddr: document.getElementById('pickup').value,
                         destAddr: document.getElementById('dest').value
                     }
@@ -278,5 +355,6 @@
             document.getElementById('status').innerText = "✅ Request Sent! Searching for drivers...";
         }
     </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyApQOktBocnX7Veuuj-gK-hY14cCWg13_k&callback=initMap" async defer></script>
 </body>
 </html>

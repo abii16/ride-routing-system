@@ -58,6 +58,9 @@ public class WebGatewayServer {
         server.createContext("/map", new StaticFileHandler("web/map.html"));
         server.createContext("/admin", new StaticFileHandler("web/admin.html"));
         server.createContext("/admin.html", new StaticFileHandler("web/admin.html"));
+        server.createContext("/driver-register.html", new StaticFileHandler("web/driver-register.html"));
+        server.createContext("/register.html", new StaticFileHandler("web/register.html"));
+
         
         // Serve CSS/JS directories
         server.createContext("/css", new DirectoryHandler("web/css"));
@@ -75,6 +78,11 @@ public class WebGatewayServer {
         server.createContext("/api/admin/assign-ride", new AdminAssignHandler()); // Manual Assign
         server.createContext("/api/auth/login", new AuthHandler(false)); // Login
         server.createContext("/api/passenger/register", new AuthHandler(true)); // Register
+        
+        // Detailed Driver Onboarding
+        server.createContext("/api/driver/register", new DriverRegistrationHandler());
+        server.createContext("/api/admin/pending-drivers", new PendingDriversHandler());
+        server.createContext("/api/admin/approve-driver", new ApproveDriverHandler());
 
         server.setExecutor(null);
         server.start();
@@ -394,6 +402,46 @@ public class WebGatewayServer {
                 String resp = sendToDatabase(dbReq);
                 sendResponse(t, resp);
             }
+        }
+    }
+
+    // --- Handler: Detailed Driver Onboarding ---
+    static class DriverRegistrationHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange t) throws IOException {
+             t.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+             if ("POST".equals(t.getRequestMethod())) {
+                 String body = readBody(t);
+                 Message msg = JSONUtil.fromJSON(body);
+                 Message dbReq = new Message(MessageType.DB_INSERT_DRIVER_DETAILED);
+                 dbReq.setPayload(msg.getPayload());
+                 sendResponse(t, sendToDatabase(dbReq));
+             }
+        }
+    }
+
+    static class PendingDriversHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange t) throws IOException {
+             t.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+             if ("GET".equals(t.getRequestMethod())) {
+                 Message dbReq = new Message(MessageType.DB_GET_PENDING_DRIVERS);
+                 sendResponse(t, sendToDatabase(dbReq));
+             }
+        }
+    }
+
+    static class ApproveDriverHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange t) throws IOException {
+             t.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+             if ("POST".equals(t.getRequestMethod())) {
+                 String body = readBody(t);
+                 Message msg = JSONUtil.fromJSON(body);
+                 Message dbReq = new Message(MessageType.DB_APPROVE_DRIVER);
+                 dbReq.setPayload(msg.getPayload());
+                 sendResponse(t, sendToDatabase(dbReq));
+             }
         }
     }
 

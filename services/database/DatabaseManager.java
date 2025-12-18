@@ -90,7 +90,7 @@ public class DatabaseManager {
      * Register a new driver
      */
     public synchronized Message registerDriver(String username, String password, String phone) {
-        String query = "INSERT INTO drivers (username, password, phone) VALUES (?, ?, ?)";
+        String query = "INSERT INTO drivers (username, password, phone, status) VALUES (?, ?, ?, 'APPROVED')";
         try (PreparedStatement pstmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, username);
             pstmt.setString(2, password);
@@ -121,6 +121,88 @@ public class DatabaseManager {
         response.addPayload("error", "Registration failed");
         return response;
     }
+
+    public synchronized Message registerDriverDetailed(Map<String, Object> data) {
+        String query = "INSERT INTO drivers (username, password, phone, full_name, dob, gender, nationality, id_number, email, address, " +
+                       "license_number, license_type, license_issue_date, license_expiry_date, vehicle_type, vehicle_model, vehicle_year, license_plate, status) " +
+                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, (String)data.get("username"));
+            pstmt.setString(2, (String)data.get("password"));
+            pstmt.setString(3, (String)data.get("phone"));
+            pstmt.setString(4, (String)data.get("full_name"));
+            pstmt.setString(5, (String)data.get("dob"));
+            pstmt.setString(6, (String)data.get("gender"));
+            pstmt.setString(7, (String)data.get("nationality"));
+            pstmt.setString(8, (String)data.get("id_number"));
+            pstmt.setString(9, (String)data.get("email"));
+            pstmt.setString(10, (String)data.get("address"));
+            pstmt.setString(11, (String)data.get("license_number"));
+            pstmt.setString(12, (String)data.get("license_type"));
+            pstmt.setString(13, (String)data.get("license_issue_date"));
+            pstmt.setString(14, (String)data.get("license_expiry_date"));
+            pstmt.setString(15, (String)data.get("vehicle_type"));
+            pstmt.setString(16, (String)data.get("vehicle_model"));
+            pstmt.setInt(17, Integer.parseInt(data.getOrDefault("vehicle_year", "2000").toString()));
+            pstmt.setString(18, (String)data.get("license_plate"));
+            
+            pstmt.executeUpdate();
+            Message response = new Message(MessageType.DB_RESPONSE);
+            response.addPayload("success", true);
+            return response;
+        } catch (Exception e) {
+            e.printStackTrace();
+            Message response = new Message(MessageType.DB_RESPONSE);
+            response.addPayload("success", false);
+            response.addPayload("error", e.getMessage());
+            return response;
+        }
+    }
+
+    public synchronized Message getPendingDrivers() {
+        String query = "SELECT * FROM drivers WHERE status = 'PENDING'";
+        List<Map<String, Object>> pending = new ArrayList<>();
+        try {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+            ResultSetMetaData meta = rs.getMetaData();
+            int count = meta.getColumnCount();
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                for (int i = 1; i <= count; i++) {
+                    row.put(meta.getColumnName(i), rs.getObject(i));
+                }
+                pending.add(row);
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        
+        Message response = new Message(MessageType.DB_RESPONSE);
+        response.addPayload("success", true);
+        response.addPayload("drivers", JSONUtil.toJSON(pending)); 
+        return response;
+    }
+
+    public synchronized Message approveDriver(String username, boolean approve) {
+        String status = approve ? "APPROVED" : "REJECTED";
+        String query = "UPDATE drivers SET status = ?, is_available = ? WHERE username = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, status);
+            pstmt.setBoolean(2, approve);
+            pstmt.setString(3, username);
+            pstmt.executeUpdate();
+            Message response = new Message(MessageType.DB_RESPONSE);
+            response.addPayload("success", true);
+            return response;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Message response = new Message(MessageType.DB_RESPONSE);
+            response.addPayload("success", false);
+            response.addPayload("error", e.getMessage());
+            return response;
+        }
+    }
+
     
     /**
      * Validate login credentials
@@ -131,6 +213,10 @@ public class DatabaseManager {
         else if (role.equalsIgnoreCase("ADMIN")) table = "admins";
         
         String query = "SELECT id FROM " + table + " WHERE username = ? AND password = ?";
+        // Only for drivers, check if they are APPROVED
+        if (role.equalsIgnoreCase("DRIVER")) {
+            query = "SELECT id FROM drivers WHERE username = ? AND password = ? AND status = 'APPROVED'";
+        }
         
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
             pstmt.setString(1, username);
@@ -155,8 +241,13 @@ public class DatabaseManager {
         Message response = new Message(MessageType.DB_RESPONSE);
         response.addPayload("success", true);
         response.addPayload("valid", false);
+        // Add specific error message for drivers who are pending
+        if (role.equalsIgnoreCase("DRIVER")) {
+             response.addPayload("error", "Your account is not yet approved. Please wait for admin verification.");
+        }
         return response;
     }
+
     
     /**
      * Update passenger location

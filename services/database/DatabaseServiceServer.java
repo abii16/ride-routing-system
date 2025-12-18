@@ -336,8 +336,22 @@ class DatabaseRequestHandler implements Runnable {
                 case GET_LOCATIONS:
                     return dbManager.getAllLocations();
                     
+                case DB_INSERT_DRIVER_DETAILED:
+                    Map<String, Object> data = request.getPayload();
+                    return dbManager.registerDriverDetailed(data);
+                    
+                case DB_GET_PENDING_DRIVERS:
+                    return dbManager.getPendingDrivers();
+                    
+                case DB_APPROVE_DRIVER:
+                    return dbManager.approveDriver(
+                        request.getPayloadString("username"),
+                        request.getPayloadBoolean("approve")
+                    );
+                    
                 case SYNC_REQUEST:
                     return dbManager.getAllTableData();
+
                     
                 default:
                     return createErrorResponse("Unknown request type: " + type);
@@ -367,9 +381,12 @@ class DatabaseRequestHandler implements Runnable {
     private boolean isModificationType(MessageType type) {
         return type == MessageType.DB_INSERT_PASSENGER ||
                type == MessageType.DB_INSERT_DRIVER ||
+               type == MessageType.DB_INSERT_DRIVER_DETAILED ||
+               type == MessageType.DB_APPROVE_DRIVER ||
                type == MessageType.DB_CREATE_RIDE ||
                type == MessageType.DB_UPDATE_RIDE ||
                type == MessageType.ASSIGN_DRIVER;
+
     }
 
     private void syncToPeers(Message originalRequest) {

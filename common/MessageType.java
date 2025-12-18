@@ -8,6 +8,7 @@ public enum MessageType {
     // Authentication & Registration
     REGISTER_PASSENGER,
     REGISTER_DRIVER,
+    REGISTER_DRIVER_PENDING,
     LOGIN,
     LOGIN_SUCCESS,
     LOGIN_FAILED,
@@ -43,6 +44,9 @@ public enum MessageType {
     DB_UPDATE_PASSENGER_LOCATION,
     DB_VALIDATE_LOGIN,
     DB_GET_ACTIVE_RIDES,
+    DB_INSERT_DRIVER_DETAILED,
+    DB_GET_PENDING_DRIVERS,
+    DB_APPROVE_DRIVER,
     DB_RESPONSE,
     
     // System Messages
