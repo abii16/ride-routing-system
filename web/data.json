@@ -1,0 +1,11 @@
+{
+  "passengers": [
+    {"username": "alice", "lat": 9.0054, "lng": 38.7636},
+    {"username": "bob", "lat": 9.0100, "lng": 38.7700}
+  ],
+  "drivers": [
+    {"username": "driver1", "lat": 9.0060, "lng": 38.7640, "available": true},
+    {"username": "driver2", "lat": 9.0090, "lng": 38.7680, "available": false}
+  ],
+  "rides": []
+}

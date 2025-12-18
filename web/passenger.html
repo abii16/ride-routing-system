@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passenger App | Gebeta Maps</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Auth Screen */
+        #auth-screen { 
+            position: absolute; top:0; left:0; width:100%; height:100%; 
+            background: white; display:flex; flex-direction:column; 
+            align-items:center; justify-content:center; z-index: 2000;
+        }
+        .auth-box { width: 300px; text-align: center; }
+        .input-field { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .action-btn { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .switch-link { color: #3b82f6; cursor: pointer; font-size: 14px; text-decoration: underline; }
+
+        /* Map UI */
+        #app-view { display: none; height: 100%; width: 100%; position: relative; }
+        #map { height: 70%; width: 100%; z-index: 1; }
+        .request-panel { height: 30%; background: white; padding: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 10; font-family: 'Outfit', sans-serif; }
+    </style>
+</head>
+<body>
+
+    <!-- Auth Screen -->
+    <div id="auth-screen">
+        <h1 style="color:#3b82f6; margin-bottom:20px;">🙋‍♂️ Passenger</h1>
+        <div class="auth-box">
+            <input type="text" id="auth-user" class="input-field" placeholder="Username">
+            <input type="password" id="auth-pass" class="input-field" placeholder="Password">
+            <button class="action-btn" onclick="handleAuth()">Login</button>
+            <p class="switch-link" onclick="toggleAuthMode()">New here? Create Account</p>
+            <div id="auth-msg" style="color:red; font-size:14px; margin-top:10px;"></div>
+        </div>
+    </div>
+
+    <!-- App View -->
+    <div id="app-view">
+        <div id="map"></div>
+        <div class="request-panel">
+            <h3>Request a Ride</h3>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <input id="pickup" class="input-field" placeholder="📍 Enter Pickup Address">
+                <button class="action-btn" style="width:auto;" onclick="geocodeAndSet('pickup')">Set</button>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <input id="dest" class="input-field" placeholder="🏁 Enter Destination">
+                <button class="action-btn" style="width:auto; background:#10b981;" onclick="geocodeAndSet('dest')">Set</button>
+            </div>
+            <button id="requestBtn" class="action-btn" style="background:#ccc; cursor:not-allowed;" disabled onclick="requestRide()">REQUEST RIDE</button>
+            <div id="status" style="margin-top:10px; font-size:14px; color:#666;"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let isRegisterMode = false;
+        let passengerName = "";
+        let map;
+        let coords = { pickup: null, dest: null };
+        let markers = {};
+        let routeLayer;
+
+        const GEBETA_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55bmFtZSI6ImRlYnJlIGJlcmhhbiB1bml2ZXJzaXR5IiwiZGVzY3JpcHRpb24iOiI5YTkzOTJiNy1mMzQxLTQ3MTctOTMzYy1lMzJkNGIzYmJjMjkiLCJpZCI6IjlkMjBlNmJkLTEzOWQtNGM3OC05ZTBlLWZlZGUzZjQ1ZWZkZSIsImlzc3VlZF9hdCI6MTc2NTkxNDE2NiwiaXNzdWVyIjoiaHR0cHM6Ly9tYXBhcGkuZ2ViZXRhLmFwcCIsImp3dF9pZCI6IjAiLCJzY29wZXMiOlsiRkVBVFVSRV9BTEwiXSwidXNlcm5hbWUiOiJTdGF5SGVyZSJ9.mcVl25CuabEJSFGwFz4O8N6OznOO4dZS1Kb0hSO35_I"; 
+
+        // ... (Auth Logic skipped for brevity, remains same) ...
+        function toggleAuthMode() { /* ... unchanged ... */
+            isRegisterMode = !isRegisterMode;
+            document.querySelector('#auth-screen button').innerText = isRegisterMode ? "Register" : "Login";
+            document.querySelector('#auth-screen .switch-link').innerText = isRegisterMode ? "Have an account? Login" : "New here? Create Account";
+            document.querySelector('#auth-screen h1').innerText = isRegisterMode ? "Create Account" : "Passenger Login";
+            document.getElementById('auth-msg').innerText = "";
+        }
+
+        async function handleAuth() { /* ... unchanged ... */
+            const u = document.getElementById('auth-user').value;
+            const p = document.getElementById('auth-pass').value;
+            const msg = document.getElementById('auth-msg');
+
+            if(!u || !p) return msg.innerText = "Fill all fields";
+            
+            msg.innerText = "Processing...";
+            
+            const endpoint = isRegisterMode ? '/api/passenger/register' : '/api/auth/login';
+            const payload = isRegisterMode 
+                ? { username: u, password: p, phone: "00000000" } 
+                : { role: "passenger", username: u, password: p };
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify({ type: isRegisterMode ? "REGISTER_PASSENGER" : "LOGIN", payload: payload })
+                });
+                const response = await res.json();
+                const data = response.payload || response; 
+                
+                // Strict Login Check
+                let allowed = false;
+                if (isRegisterMode) {
+                    allowed = data.success;
+                } else {
+                    allowed = data.success && data.valid;
+                }
+                
+                if (allowed) {
+                    passengerName = u;
+                    document.getElementById('auth-screen').style.display = 'none';
+                    document.getElementById('app-view').style.display = 'block';
+                    initMap();
+                } else {
+                    msg.innerText = "Error: " + (data.error || "Invalid Credentials");
+                }
+            } catch(e) {
+                msg.innerText = "Network Error";
+            }
+        }
+
+        function initMap() {
+            map = L.map('map').setView([9.0060, 38.7640], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap | Routing: Gebeta' }).addTo(map);
+            
+            // Allow map click to set active field
+            map.on('click', function(e) {
+                // If pickup is empty, set pickup. Else set dest.
+                if (!coords.pickup) {
+                    updateLocation('pickup', e.latlng.lat, e.latlng.lng, "Map Click");
+                } else {
+                    updateLocation('dest', e.latlng.lat, e.latlng.lng, "Map Click");
+                }
+            });
+        }
+
+        async function geocodeAndSet(type) {
+            const input = document.getElementById(type);
+            const query = input.value;
+            const status = document.getElementById('status');
+            
+            if (!query) {
+                // No text? Use map center!
+                const center = map.getCenter();
+                updateLocation(type, center.lat, center.lng, "...From Map Center");
+                return;
+            }
+            
+            // Check if it's already coords
+            if (query.includes(",")) {
+                const parts = query.split(",");
+                if(parts.length === 2 && !isNaN(parts[0])) {
+                    updateLocation(type, parseFloat(parts[0]), parseFloat(parts[1]), query);
+                    return;
+                }
+            }
+
+            status.innerText = "🔍 Searching: " + query + "...";
+            
+            try {
+                // Call Geocoding API
+                const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    const name = data[0].display_name;
+                    
+                    updateLocation(type, lat, lon, name); // Helper function
+                    status.innerText = "✅ Found: " + name;
+                } else {
+                    status.innerText = "❌ Address not found. Try dragging map.";
+                }
+            } catch(e) {
+                status.innerText = "Geocode Error: Check connection";
+            }
+        }
+        
+        function updateLocation(type, lat, lon, label) {
+             coords[type] = { lat: lat, lon: lon };
+             
+             // Update Input UI
+             document.getElementById(type).value = label.substring(0, 40) + (label.length>40?"...":""); // Show address
+             
+             // Map UI
+             if (markers[type]) map.removeLayer(markers[type]);
+             markers[type] = L.marker([lat, lon]).addTo(map).bindPopup(type === 'pickup' ? "Start" : "End").openPopup();
+             map.setView([lat, lon], 14);
+             
+             // Check if ready
+             if(coords.pickup && coords.dest) {
+                 document.getElementById('requestBtn').disabled = false;
+                 document.getElementById('requestBtn').style.background = "#10b981";
+                 document.getElementById('requestBtn').style.cursor = "pointer";
+                 drawRoute();
+             }
+        }
+
+        async function drawRoute() {
+            if (!coords.pickup || !coords.dest) return;
+            
+            // Remove existing route
+            if (routeLayer) map.removeLayer(routeLayer);
+            
+            document.getElementById('status').innerText = "📍 Calculating Route...";
+            
+            try {
+                // Construct API URL
+                const url = `/api/direction?originLat=${coords.pickup.lat}&originLon=${coords.pickup.lon}&destLat=${coords.dest.lat}&destLon=${coords.dest.lon}&apiKey=${GEBETA_API_KEY}`;
+                
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                let latlngs = [];
+                
+                // Parse Gebeta Response (Robust handling)
+                if (Array.isArray(data)) {
+                    // Assume [[lat,lon], ...]
+                    latlngs = data; 
+                } else if (data.direction) {
+                    // Some versions return { direction: [[...]] }
+                    latlngs = data.direction;
+                } else if (data.routes && data.routes[0]) {
+                     // Check for encoded geometry or coordinates
+                     if (data.routes[0].geometry && data.routes[0].geometry.coordinates) {
+                         latlngs = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]); // GeoJSON [lon, lat] -> Leaflet [lat, lon]
+                     }
+                }
+
+                // Fallback: Straight Line if parsing failed but we just want to show something
+                if (latlngs.length === 0) {
+                    latlngs = [
+                        [coords.pickup.lat, coords.pickup.lon],
+                        [coords.dest.lat, coords.dest.lon]
+                    ];
+                }
+                
+                // Draw Polyline
+                routeLayer = L.polyline(latlngs, {color: '#10b981', weight: 5, opacity: 0.7}).addTo(map);
+                map.fitBounds(routeLayer.getBounds(), {padding: [50, 50]});
+                
+                document.getElementById('status').innerText = "✅ Route Set";
+                
+            } catch (e) {
+                console.error(e);
+                // Fallback straight line on error
+                routeLayer = L.polyline([
+                    [coords.pickup.lat, coords.pickup.lon],
+                    [coords.dest.lat, coords.dest.lon]
+                ], {color: 'blue', dashArray: '5, 10'}).addTo(map);
+                map.fitBounds(routeLayer.getBounds());
+                document.getElementById('status').innerText = "⚠️ Route Preview (Straight Line)";
+            }
+        }
+
+
+        function requestRide() {
+            // Send Request to Backend
+            fetch('/api/passenger', {
+                method: 'POST',
+                body: JSON.stringify({
+                    type: "REQUEST_RIDE",
+                    payload: { 
+                        username: passengerName, 
+                        pickupLat: coords.pickup.lat, 
+                        pickupLon: coords.pickup.lon,
+                        destLat: coords.dest.lat, 
+                        destLon: coords.dest.lon,
+                        // Add address text for future use if needed, but critical is lat/lon matching backend
+                        pickupAddr: document.getElementById('pickup').value,
+                        destAddr: document.getElementById('dest').value
+                    }
+                })
+            });
+            document.getElementById('status').innerText = "✅ Request Sent! Searching for drivers...";
+        }
+    </script>
+</body>
+</html>

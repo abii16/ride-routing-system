@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ride Distributed System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #111; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .container { text-align: center; }
+        h1 { font-size: 3rem; margin-bottom: 10px; background: linear-gradient(to right, #10b981, #3b82f6); -webkit-background-clip: text; color: transparent; }
+        p { color: #888; margin-bottom: 40px; }
+        
+        .roles { display: flex; gap: 20px; justify-content: center; }
+        .card { 
+            background: #222; padding: 30px; border-radius: 15px; width: 200px; 
+            border: 1px solid #333; transition: 0.3s; cursor: pointer; text-decoration: none; color: white;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .card:hover { transform: translateY(-5px); border-color: #10b981; background: #2a2a2a; }
+        .icon { font-size: 40px; margin-bottom: 20px; }
+        .title { font-weight: bold; font-size: 18px; margin-bottom: 10px; }
+        .desc { font-size: 12px; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ride Distributed System</h1>
+        <p>Simulation of Ethiopian Ride Sharing Architecture</p>
+        
+        <div class="roles">
+            <a href="/admin.html" class="card">
+                <div class="icon">🖥️</div>
+                <div class="title">Admin</div>
+                <div class="desc">Monitor Network & Status</div>
+            </a>
+            
+            <a href="/driver.html" class="card">
+                <div class="icon">🚕</div>
+                <div class="title">Driver</div>
+                <div class="desc">Receive Rides & Navigate</div>
+            </a>
+            
+            <a href="/passenger.html" class="card">
+                <div class="icon">🙋‍♂️</div>
+                <div class="title">Passenger</div>
+                <div class="desc">Book a Ride (Addis Ababa)</div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

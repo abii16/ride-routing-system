@@ -1,0 +1,57 @@
+# Instructions for PC B and PC C
+
+## Quick Setup (2 minutes)
+
+### Step 1: Download the Installer
+
+On PC B or PC C, open **Command Prompt** and run:
+
+```cmd
+copy \\10.18.51.22\disributed\install-from-network.bat %TEMP%\install.bat && %TEMP%\install.bat
+```
+
+**That's it!** The installer will:
+1. Ask for PC A's IP (enter: `10.18.51.22`)
+2. Copy all files from PC A
+3. Configure firewall
+4. Start the server
+5. Auto-sync with PC A
+
+---
+
+## Alternative: Manual Steps
+
+If the one-liner doesn't work, do this:
+
+### Step 1: Copy Files
+```cmd
+xcopy /E /I \\10.18.51.22\disributed C:\RideShare\app
+```
+
+### Step 2: Start Server
+```cmd
+cd C:\RideShare\app
+start-full-web.bat
+```
+
+---
+
+## Verification
+
+After starting, you should see in the console:
+```
+[AutoDiscovery] Found new peer: 10.18.51.22. Added to Sync List.
+[DatabaseService] Auto-Sync Complete with 10.18.51.22
+```
+
+**If you see this = SUCCESS!** ✅
+
+---
+
+## Access the System
+
+Open browser and go to:
+- **Local access:** http://localhost:8080/
+- **Network access:** http://[THIS-PC-IP]:8080/
+
+All data is automatically synced with PC A!

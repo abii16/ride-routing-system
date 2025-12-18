@@ -1,0 +1,75 @@
+╔══════════════════════════════════════════════════════════════════╗
+║          NETWORK ACCESS - QUICK REFERENCE CARD                   ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📍 YOUR SERVER IP ADDRESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Check your server console window for the IP address, or run:
+  
+  ipconfig | findstr IPv4
+  
+  Example: 10.18.51.22 or 192.168.1.100
+
+🔥 FIREWALL SETUP (Run ONCE as Administrator)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  netsh advfirewall firewall add rule name="RideShare Web Gateway" dir=in action=allow protocol=TCP localport=8080
+
+🌐 ACCESS FROM OTHER PCs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  On this PC:
+    http://localhost:8080/
+  
+  From other PCs on the same network:
+    http://[YOUR-IP]:8080/
+  
+  Example:
+    http://10.18.51.22:8080/
+
+📱 AVAILABLE PAGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Home:      http://[YOUR-IP]:8080/
+  Passenger: http://[YOUR-IP]:8080/passenger
+  Driver:    http://[YOUR-IP]:8080/driver
+  Admin:     http://[YOUR-IP]:8080/admin
+  Map:       http://[YOUR-IP]:8080/map
+
+✅ QUICK TEST (from other PC)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Test-NetConnection -ComputerName [YOUR-IP] -Port 8080
+  
+  If "TcpTestSucceeded : True" → You're good to go! ✅
+
+⚠️  TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ❌ Cannot connect?
+     → Check firewall rule is added
+     → Verify both PCs are on same network
+     → Make sure server is running (start-full-web.bat)
+  
+  ❌ Connection refused?
+     → Restart the Web Gateway service
+     → Check if port 8080 is already in use
+  
+  ❌ Slow response?
+     → Check all backend services are running
+     → Verify MySQL is running in XAMPP
+
+📋 SYSTEM STATUS CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ☐ MySQL running (XAMPP)
+  ☐ Database Service running (Port 5002)
+  ☐ Driver Service running (Port 5001)
+  ☐ Dispatch Server running (Port 5000)
+  ☐ Web Gateway running (Port 8080)
+  ☐ Firewall rule added for port 8080
+  ☐ Server shows "listening on ALL network interfaces"
+
+🔒 SECURITY REMINDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ⚠️  This is for LOCAL NETWORK use only
+  ⚠️  Do NOT expose to the internet without proper security
+  ⚠️  Anyone on your network can access the application
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+For detailed instructions, see: NETWORK_ACCESS_GUIDE.md
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
