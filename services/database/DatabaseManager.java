@@ -41,12 +41,96 @@ public class DatabaseManager {
     public DatabaseManager() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
+            
+            // 1. Attempt to create the database if it doesn't exist
+            try (Connection setupConn = DriverManager.getConnection("jdbc:mysql://" + DB_HOST + ":3306/", USER, PASSWORD);
+                 Statement stmt = setupConn.createStatement()) {
+                stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS ride_sharing_distributed");
+            } catch (SQLException e) {
+                System.out.println("[DatabaseManager] Info: Could not auto-create database (might exist or permission denied): " + e.getMessage());
+            }
+
+            // 2. Connect to the database
             this.connection = DriverManager.getConnection(URL, USER, PASSWORD);
             System.out.println("[DatabaseManager] Connected to MySQL database successfully.");
+            
+            // 3. Initialize Tables (Auto-Migration)
+            initializeSchema();
+            
         } catch (ClassNotFoundException e) {
-            System.err.println("[DatabaseManager] MySQL JDBC Driver not found: " + e.getMessage());
+            throw new RuntimeException("MySQL JDBC Driver not found. Ensure library is in classpath.", e);
         } catch (SQLException e) {
-            System.err.println("[DatabaseManager] Database connection failed: " + e.getMessage());
+            throw new RuntimeException("Database connection failed. Verify MySQL is running at " + DB_HOST + ":3306 and user '" + USER + "' has access.", e);
+        }
+    }
+
+    private void initializeSchema() {
+        try (Statement stmt = connection.createStatement()) {
+            // Passengers
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS passengers (" +
+                "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                "username VARCHAR(50) NOT NULL UNIQUE, " +
+                "password VARCHAR(255) NOT NULL, " +
+                "phone VARCHAR(20), " +
+                "latitude DOUBLE DEFAULT 0.0, " +
+                "longitude DOUBLE DEFAULT 0.0, " +
+                "is_login TINYINT(1) DEFAULT 0)");
+
+            // Drivers - Including all fields used in registerDriverDetailed
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS drivers (" +
+                "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                "username VARCHAR(50) NOT NULL UNIQUE, " +
+                "password VARCHAR(255) NOT NULL, " +
+                "phone VARCHAR(20), " +
+                "latitude DOUBLE DEFAULT 0.0, " +
+                "longitude DOUBLE DEFAULT 0.0, " +
+                "is_available TINYINT(1) DEFAULT 1, " +
+                "is_login TINYINT(1) DEFAULT 0, " +
+                "full_name VARCHAR(100), " +
+                "dob VARCHAR(50), " + // broadened
+                "gender VARCHAR(20), " +
+                "nationality VARCHAR(50), " +
+                "id_number VARCHAR(50), " +
+                "email VARCHAR(100), " +
+                "address TEXT, " +
+                "license_number VARCHAR(50), " +
+                "license_type VARCHAR(50), " +
+                "license_issue_date VARCHAR(50), " +
+                "license_expiry_date VARCHAR(50), " +
+                "vehicle_type VARCHAR(50), " +
+                "vehicle_model VARCHAR(50), " +
+                "vehicle_year INT, " +
+                "license_plate VARCHAR(50), " +
+                "status VARCHAR(20) DEFAULT 'APPROVED')");
+
+            // Rides
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS rides (" +
+                "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                "passenger_id INT NOT NULL, " +
+                "driver_id INT DEFAULT NULL, " +
+                "status VARCHAR(20) DEFAULT 'REQUESTED', " +
+                "start_lat DOUBLE NOT NULL, " +
+                "start_lon DOUBLE NOT NULL, " +
+                "dest_lat DOUBLE NOT NULL, " +
+                "dest_lon DOUBLE NOT NULL, " +
+                "start_address VARCHAR(255), " +
+                "dest_address VARCHAR(255), " +
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                "FOREIGN KEY (passenger_id) REFERENCES passengers(id))");
+
+            // Ride History
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS ride_status_history (" +
+                "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                "ride_id INT NOT NULL, " +
+                "status VARCHAR(20), " + 
+                "latitude DOUBLE, " +
+                "longitude DOUBLE, " +
+                "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+            System.out.println("[DatabaseManager] Database schema initialized.");
+            
+        } catch (SQLException e) {
+            System.err.println("[DatabaseManager] Schema initialization warning: " + e.getMessage());
         }
     }
     
