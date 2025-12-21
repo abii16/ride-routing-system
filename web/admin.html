@@ -1,65 +1,320 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | Ride System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --dark: #1f2937; --light: #f3f4f6; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--light); display: flex; height: 100vh; overflow: hidden; }
-        
-        /* Sidebar */
-        .sidebar { width: 250px; background: var(--dark); color: white; display: flex; flex-direction: column; padding: 20px; }
-        .sidebar h1 { font-size: 20px; margin-bottom: 40px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
-        .nav-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; transition: 0.3s; color: #9ca3af; }
-        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.1); color: white; }
-        .nav-item.active { border-left: 4px solid var(--primary); }
-        
-        /* Main Content */
-        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        
-        /* Top Stats Bar */
-        .stats-bar { background: white; padding: 15px 30px; display: flex; gap: 30px; border-bottom: 1px solid #e5e7eb; }
-        .stat-card { display: flex; flex-direction: column; }
-        .stat-val { font-size: 24px; font-weight: bold; color: var(--dark); }
-        .stat-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        /* Map Area */
-        #map { flex: 1; width: 100%; z-index: 1; }
-        
-        /* Distributed System Monitor Overlay */
-        .monitor { 
-            position: absolute; top: 80px; right: 20px; width: 300px; 
-            background: rgba(255,255,255,0.95); padding: 20px; border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 1000;
+        :root {
+            --primary: #10b981;
+            --dark: #1f2937;
+            --light: #f3f4f6;
         }
-        .monitor h3 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; color: #6b7280; }
-        .service-node { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .node-name { font-weight: 600; font-size: 14px; }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-        .status-dot.online { background: #10b981; box-shadow: 0 0 8px #10b981; }
-        
-        .pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--light);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: var(--dark);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .sidebar h1 {
+            font-size: 20px;
+            margin-bottom: 40px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 12px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: 0.3s;
+            color: #9ca3af;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Top Stats Bar */
+        .stats-bar {
+            background: white;
+            padding: 15px 30px;
+            display: flex;
+            gap: 30px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-val {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Map Area */
+        #map {
+            flex: 1;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* Distributed System Monitor Overlay */
+        .monitor {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+        }
+
+        .monitor h3 {
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #6b7280;
+        }
+
+        .service-node {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .node-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-dot.online {
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
         /* Logs Panel */
-        .logs { 
-            height: 150px; background: black; color: #00ff00; 
-            font-family: monospace; padding: 10px; font-size: 12px; overflow-y: auto; 
+        .logs {
+            height: 150px;
+            background: black;
+            color: #00ff00;
+            font-family: monospace;
+            padding: 10px;
+            font-size: 12px;
+            overflow-y: auto;
             border-top: 2px solid #333;
+        }
+
+        /* Custom Modal & Toast */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transform: scale(0.9);
+            transition: 0.3s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        .modal-desc {
+            color: #6b7280;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            border: none;
+            transition: 0.2s;
+        }
+
+        .btn-cancel {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-confirm {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-confirm.danger {
+            background: #ef4444;
+        }
+
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10001;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 250px;
+        }
+
+        .toast.success {
+            background: #10b981;
+            border-left: 5px solid #065f46;
+        }
+
+        .toast.error {
+            background: #ef4444;
+            border-left: 5px solid #991b1b;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <!-- Admin Login Screen -->
-    <div id="admin-login" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:#1f2937; display:flex; align-items:center; justify-content:center;">
-        <div style="width:300px; padding:30px; background:#111; border-radius:12px; border:1px solid #374151; color:white; text-align:center;">
+    <div id="admin-login"
+        style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:#1f2937; display:flex; align-items:center; justify-content:center;">
+        <div
+            style="width:300px; padding:30px; background:#111; border-radius:12px; border:1px solid #374151; color:white; text-align:center;">
             <h2 style="color:#10b981; margin-bottom:20px;">🔒 Admin Panel</h2>
-            <input id="admin-user" placeholder="Username" style="width:100%; padding:10px; margin-bottom:10px; border-radius:4px; border:none; box-sizing:border-box;">
-            <input id="admin-pass" type="password" placeholder="Password" style="width:100%; padding:10px; margin-bottom:20px; border-radius:4px; border:none; box-sizing:border-box;">
-            <button onclick="adminLogin()" style="width:100%; padding:10px; background:#10b981; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">Login</button>
+            <input id="admin-user" placeholder="Username"
+                style="width:100%; padding:10px; margin-bottom:10px; border-radius:4px; border:none; box-sizing:border-box;">
+            <input id="admin-pass" type="password" placeholder="Password"
+                style="width:100%; padding:10px; margin-bottom:20px; border-radius:4px; border:none; box-sizing:border-box;">
+            <button onclick="adminLogin()"
+                style="width:100%; padding:10px; background:#10b981; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">Login</button>
             <p id="admin-err" style="color:red; font-size:12px; margin-top:10px;"></p>
         </div>
     </div>
@@ -69,14 +324,14 @@
             const u = document.getElementById('admin-user').value;
             const p = document.getElementById('admin-pass').value;
             const err = document.getElementById('admin-err');
-            
-            if(!u || !p) {
+
+            if (!u || !p) {
                 err.innerText = "Please enter credentials";
                 return;
             }
-            
+
             err.innerText = "Verifying...";
-            
+
             try {
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
@@ -84,13 +339,13 @@
                 });
                 const response = await res.json();
                 const data = response.payload || response;
-                
+
                 if (data.success && data.valid) {
                     document.getElementById('admin-login').style.display = 'none';
                 } else {
                     err.innerText = "Invalid Credentials";
                 }
-            } catch(e) {
+            } catch (e) {
                 err.innerText = "Server Error";
             }
         }
@@ -103,7 +358,7 @@
         <div class="nav-item">Ride History</div>
 
         <div class="nav-item">Settings</div>
-        
+
         <div style="margin-top: auto; font-size: 12px; color: #6b7280;">
             Distributed System v1.0<br>
             Addis Ababa Region
@@ -113,23 +368,23 @@
     <div class="main">
         <!-- Top Stats Bar -->
         <div class="stats-bar">
-             <div class="stat-card">
-                 <span class="stat-val" id="stat-drivers">0</span>
-                 <span class="stat-label">Active Drivers</span>
-             </div>
-             <div class="stat-card">
-                 <span class="stat-val" id="stat-passengers">0</span>
-                 <span class="stat-label">Active Passengers</span>
-             </div>
-             <div class="stat-card">
-                 <span class="stat-val" id="stat-rides">0</span>
-                 <span class="stat-label">Total Rides</span>
-             </div>
+            <div class="stat-card">
+                <span class="stat-val" id="stat-drivers">0</span>
+                <span class="stat-label">Active Drivers</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="stat-passengers">0</span>
+                <span class="stat-label">Active Passengers</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="stat-rides">0</span>
+                <span class="stat-label">Total Rides</span>
+            </div>
         </div>
 
         <div id="view-map" class="view-section" style="flex:1; display:flex; flex-direction:column; position:relative;">
             <div id="map"></div>
-            
+
             <div class="monitor">
                 <h3>Distributed Architecture</h3>
                 <div class="service-node">
@@ -159,10 +414,12 @@
         <!-- VIEW: VERIFICATION -->
         <div id="view-registry" class="view-section" style="display:none; padding: 40px; overflow-y:auto;">
             <h2>📋 Pending Driver Applications</h2>
-            <div id="pending-drivers-empty" style="background:white; padding:40px; border-radius:12px; text-align:center; color:#6b7280; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+            <div id="pending-drivers-empty"
+                style="background:white; padding:40px; border-radius:12px; text-align:center; color:#6b7280; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
                 No pending applications at the moment.
             </div>
-            <div id="pending-drivers-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px;">
+            <div id="pending-drivers-list"
+                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px;">
                 <!-- Cards will be injected here -->
             </div>
         </div>
@@ -174,35 +431,52 @@
 
         <!-- VIEW: ACTIVE RIDES -->
         <div id="view-rides" class="view-section" style="display:none; padding:40px; overflow-y:auto;">
-             <h2>🚖 Active Ride Requests</h2>
-             <table style="width:100%; border-collapse:collapse; background:white; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
-                 <thead>
-                     <tr style="background:#f3f4f6; text-align:left;">
-                         <th style="padding:15px;">Ride ID</th>
-                         <th style="padding:15px;">Passenger</th>
-                         <th style="padding:15px;">Status</th>
-                     </tr>
-                 </thead>
-                 <tbody id="rides-list">
-                     <tr><td colspan="3" style="padding:20px; text-align:center;">Waiting for data...</td></tr>
-                 </tbody>
-             </table>
+            <h2>🚖 Active Ride Requests</h2>
+            <table
+                style="width:100%; border-collapse:collapse; background:white; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+                <thead>
+                    <tr style="background:#f3f4f6; text-align:left;">
+                        <th style="padding:15px;">Ride ID</th>
+                        <th style="padding:15px;">Passenger</th>
+                        <th style="padding:15px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="rides-list">
+                    <tr>
+                        <td colspan="3" style="padding:20px; text-align:center;">Waiting for data...</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
     </div>
 
+    <!-- Custom Dialogs -->
+    <div id="modal-confirm" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" id="m-title">Confirm Action</div>
+            <div class="modal-desc" id="m-desc">Are you sure you want to proceed?</div>
+            <div class="modal-btns">
+                <button class="btn-modal btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-modal btn-confirm" id="m-confirm-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+    <div id="toast-root" class="toast-container"></div>
+
     <script src="js/map.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyApQOktBocnX7Veuuj-gK-hY14cCWg13_k&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyApQOktBocnX7Veuuj-gK-hY14cCWg13_k&callback=initMap"
+        async defer></script>
     <script>
         // Navigation Logic
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
                 document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
                 item.classList.add('active');
-                
+
                 // Switch Views
                 document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
-                
+
                 if (item.innerText.includes('Live Map')) document.getElementById('view-map').style.display = 'flex';
                 if (item.innerText.includes('Driver Verification')) {
                     document.getElementById('view-registry').style.display = 'block';
@@ -211,17 +485,21 @@
                 if (item.innerText.includes('Ride History')) document.getElementById('view-rides').style.display = 'block';
             });
         });
-        
+
         async function fetchPendingDrivers() {
             const list = document.getElementById('pending-drivers-list');
             const empty = document.getElementById('pending-drivers-empty');
-            
+
             try {
                 const res = await fetch('/api/admin/pending-drivers');
                 const response = await res.json();
-                const drivers = JSON.parse(response.payload.drivers || "[]");
-                
-                if (drivers.length === 0) {
+                console.log("[Admin] Pending Drivers raw:", response);
+
+                const data = response.payload || response;
+                const driverData = data.drivers || "[]";
+                const drivers = typeof driverData === 'string' ? JSON.parse(driverData) : driverData;
+
+                if (!drivers || drivers.length === 0) {
                     list.style.display = 'none';
                     empty.style.display = 'block';
                 } else {
@@ -253,97 +531,109 @@
                         </div>
                     `).join('');
                 }
-            } catch(e) { console.error(e); }
+            } catch (e) { console.error(e); }
         }
 
         async function approveDriver(username, approve) {
-            if(!confirm(`${approve ? 'Approve' : 'Reject'} ${username}?`)) return;
-            try {
-                const res = await fetch('/api/admin/approve-driver', {
-                    method: 'POST',
-                    body: JSON.stringify({type: "APPROVE_DRIVER", payload: {username: username, approve: approve}})
-                });
-                const data = await res.json();
-                if(data.payload && data.payload.success) {
-                    alert("✅ Action recorded successfully!");
-                    fetchPendingDrivers();
-                    updateMap();
-                } else {
-                    alert("❌ Error: " + (data.payload?.error || "Unknown"));
+            const action = approve ? 'Approve' : 'Reject';
+            showConfirmDialog(
+                `${action} Driver?`,
+                `Are you sure you want to ${action.toLowerCase()} driver <b>${username}</b>? This action cannot be undone.`,
+                approve ? 'confirm' : 'danger',
+                async () => {
+                    try {
+                        const res = await fetch('/api/admin/approve-driver', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: "DB_APPROVE_DRIVER", payload: { username: username, approve: approve } })
+                        });
+                        const data = await res.json();
+                        const result = data.payload || data;
+
+                        if (result.success) {
+                            showToast(`✅ Driver ${username} ${approve ? 'Approved' : 'Rejected'}`, 'success');
+                            fetchPendingDrivers();
+                            if (typeof updateMap === 'function') updateMap();
+                        } else {
+                            showToast("❌ Error: " + (result.error || "Unknown"), 'error');
+                        }
+                    } catch (e) {
+                        showToast("Network Error: " + e.message, 'error');
+                    }
                 }
-            } catch(e) { alert("Network Error"); }
+            );
         }
 
 
         const originalUpdate = updateMap; // Hook into map.js update
-        updateMap = async function() {
-            if (originalUpdate) await originalUpdate(); 
-            
+        updateMap = async function () {
+            if (originalUpdate) await originalUpdate();
+
             // 1. Update Stats
             if (window.latestMapData) {
-                 const drivers = JSON.parse(window.latestMapData.drivers || "[]");
-                 const passengers = JSON.parse(window.latestMapData.passengers || "[]");
-                 const rides = JSON.parse(window.latestMapData.rides || "[]");
-                 
-                 document.getElementById('stat-drivers').innerText = drivers.length;
-                 document.getElementById('stat-passengers').innerText = passengers.length;
-                 document.getElementById('stat-rides').innerText = rides.length;
+                const drivers = JSON.parse(window.latestMapData.drivers || "[]");
+                const passengers = JSON.parse(window.latestMapData.passengers || "[]");
+                const rides = JSON.parse(window.latestMapData.rides || "[]");
 
-                 // 2. Update Active Rides Table
-                 const tbody = document.getElementById('rides-list');
-                 
-                 // Clear old 'candidate' lines
-                 if(window.candidateLines) {
-                     window.candidateLines.forEach(l => l.setMap(null));
-                 }
-                 window.candidateLines = [];
+                document.getElementById('stat-drivers').innerText = drivers.length;
+                document.getElementById('stat-passengers').innerText = passengers.length;
+                document.getElementById('stat-rides').innerText = rides.length;
 
-                 if (tbody && rides.length > 0) {
-                     let html = "";
-                     rides.forEach(r => {
-                         let color = r.status === 'REQUESTED' ? 'orange' : (r.status === 'STARTED' ? 'green' : 'blue');
-                         
-                         // Calculate Nearest Driver if REQUESTED
-                         let candidateInfo = "";
-                         if (r.status === 'REQUESTED') {
-                             let nearest = null;
-                             let minDist = Infinity;
-                             
-                             drivers.forEach(d => {
-                                 if (d.available) {
-                                     const dist = getDistance(r.p_lat, r.p_lon, d.lat, d.lng);
-                                     if (dist < minDist) {
-                                         minDist = dist;
-                                         nearest = d;
-                                     }
-                                 }
-                             });
-                             
-                             if (nearest) {
-                                 const km = minDist.toFixed(1);
-                                 candidateInfo = `<br>
+                // 2. Update Active Rides Table
+                const tbody = document.getElementById('rides-list');
+
+                // Clear old 'candidate' lines
+                if (window.candidateLines) {
+                    window.candidateLines.forEach(l => l.setMap(null));
+                }
+                window.candidateLines = [];
+
+                if (tbody && rides.length > 0) {
+                    let html = "";
+                    rides.forEach(r => {
+                        let color = r.status === 'REQUESTED' ? 'orange' : (r.status === 'STARTED' ? 'green' : 'blue');
+
+                        // Calculate Nearest Driver if REQUESTED
+                        let candidateInfo = "";
+                        if (r.status === 'REQUESTED') {
+                            let nearest = null;
+                            let minDist = Infinity;
+
+                            drivers.forEach(d => {
+                                if (d.available) {
+                                    const dist = getDistance(r.p_lat, r.p_lon, d.lat, d.lng);
+                                    if (dist < minDist) {
+                                        minDist = dist;
+                                        nearest = d;
+                                    }
+                                }
+                            });
+
+                            if (nearest) {
+                                const km = minDist.toFixed(1);
+                                candidateInfo = `<br>
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; background:#f9fafb; padding:5px; border-radius:4px;">
                                         <small style="color:#666">Nearest: <b>${nearest.username}</b> (${km} km)</small>
                                         <button onclick="manualAssign(${r.id}, '${nearest.username}', ${r.p_lat}, ${r.p_lon})" style="background:#10b981; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Assign</button>
                                     </div>`;
-                                 
-                                 // Draw suggestion line (if map is visible and initialized)
-                                 if (document.getElementById('view-map').style.display !== 'none' && typeof map !== 'undefined' && map) {
-                                     const line = new google.maps.Polyline({
-                                        path: [{lat: r.p_lat, lng: r.p_lon}, {lat: nearest.lat, lng: nearest.lng}],
-                                        strokeColor: 'orange', 
-                                        strokeOpacity: 0.6, 
+
+                                // Draw suggestion line (if map is visible and initialized)
+                                if (document.getElementById('view-map').style.display !== 'none' && typeof map !== 'undefined' && map) {
+                                    const line = new google.maps.Polyline({
+                                        path: [{ lat: r.p_lat, lng: r.p_lon }, { lat: nearest.lat, lng: nearest.lng }],
+                                        strokeColor: 'orange',
+                                        strokeOpacity: 0.6,
                                         strokeWeight: 2,
                                         map: map
-                                     });
-                                     window.candidateLines.push(line);
-                                 }
-                             } else {
-                                 candidateInfo = `<br><small style="color:red">No drivers available</small>`;
-                             }
-                         }
+                                    });
+                                    window.candidateLines.push(line);
+                                }
+                            } else {
+                                candidateInfo = `<br><small style="color:red">No drivers available</small>`;
+                            }
+                        }
 
-                         html += `<tr style="border-bottom:1px solid #eee;">
+                        html += `<tr style="border-bottom:1px solid #eee;">
                              <td style="padding:15px;">#${r.id}</td>
                              <td style="padding:15px;">
                                 <b>${r.passenger}</b>
@@ -351,51 +641,93 @@
                              </td>
                              <td style="padding:15px;"><span style="color:${color}; font-weight:bold;">${r.status}</span></td>
                          </tr>`;
-                     });
-                     tbody.innerHTML = html;
-                 } else if (tbody) {
-                     tbody.innerHTML = '<tr><td colspan="3" style="padding:20px; text-align:center;">No active rides</td></tr>';
-                 }
-                 
-                 log(`Sync: ${drivers.length} Drivers, ${passengers.length} Passengers, ${rides.length} Rides`);
+                    });
+                    tbody.innerHTML = html;
+                } else if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="padding:20px; text-align:center;">No active rides</td></tr>';
+                }
+
+                log(`Sync: ${drivers.length} Drivers, ${passengers.length} Passengers, ${rides.length} Rides`);
             }
         }
-        
+
         async function manualAssign(rideId, driver, lat, lon) {
-            if(!confirm(`Assign Ride #${rideId} to ${driver}?`)) return;
-            try {
-                const res = await fetch('/api/admin/assign-ride', {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        rideId: rideId, 
-                        driverUsername: driver,
-                        pickupLat: lat,
-                        pickupLon: lon
-                    })
-                });
-                const data = await res.json();
-                if(data.success) {
-                    alert("✅ Driver Assigned Successfully!");
-                    updateMap(); // Refresh immediately
-                } else {
-                    alert("❌ Assignment Failed: " + (data.error || "Unknown Error"));
+            showConfirmDialog(
+                "Assign Driver?",
+                `Assign Ride <b>#${rideId}</b> to <b>${driver}</b>?`,
+                'confirm',
+                async () => {
+                    try {
+                        const res = await fetch('/api/admin/assign-ride', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                type: "ASSIGN_DRIVER",
+                                payload: {
+                                    rideId: rideId,
+                                    driverUsername: driver,
+                                    pickupLat: lat,
+                                    pickupLon: lon
+                                }
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.success || data.payload?.success) {
+                            showToast("✅ Driver Assigned Successfully!", 'success');
+                            updateMap();
+                        } else {
+                            showToast("❌ Failed: " + (data.error || data.payload?.error || "Error"), 'error');
+                        }
+                    } catch (e) {
+                        showToast("Network Error: " + e.message, 'error');
+                    }
                 }
-            } catch(e) { 
-                alert("❌ Network Error"); 
-            }
+            );
+        }
+
+        // --- Custom Dialog Helpers ---
+        function showConfirmDialog(title, desc, type, onConfirm) {
+            const modal = document.getElementById('modal-confirm');
+            const btn = document.getElementById('m-confirm-btn');
+            document.getElementById('m-title').innerText = title;
+            document.getElementById('m-desc').innerHTML = desc;
+
+            btn.className = 'btn-modal btn-confirm ' + (type === 'danger' ? 'danger' : '');
+            btn.onclick = () => {
+                onConfirm();
+                closeModal();
+            };
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-confirm').classList.remove('active');
+        }
+
+        function showToast(msg, type = 'success') {
+            const root = document.getElementById('toast-root');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${msg}</span>`;
+            root.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
 
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371; // km
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
         }
-        
+
         // RESTART INTERVAL with new function
         if (typeof intervalId !== 'undefined') clearInterval(intervalId);
         intervalId = setInterval(updateMap, 2000);
@@ -410,4 +742,5 @@
         }
     </script>
 </body>
+
 </html>

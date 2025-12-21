@@ -1,30 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Passenger App | Gebeta Maps</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; height: 100vh; }
-        
-        /* Auth Screen */
-        #auth-screen { 
-            position: absolute; top:0; left:0; width:100%; height:100%; 
-            background: white; display:flex; flex-direction:column; 
-            align-items:center; justify-content:center; z-index: 2000;
+        body {
+            margin: 0;
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
-        .auth-box { width: 300px; text-align: center; }
-        .input-field { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .action-btn { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
-        .switch-link { color: #3b82f6; cursor: pointer; font-size: 14px; text-decoration: underline; }
+
+        /* Auth Screen */
+        #auth-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .auth-box {
+            width: 300px;
+            text-align: center;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            background: #fff;
+            color: #333;
+            font-family: inherit;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .switch-link {
+            color: #3b82f6;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: underline;
+        }
 
         /* Map UI */
-        #app-view { display: none; height: 100%; width: 100%; position: relative; }
-        #map { height: 70%; width: 100%; z-index: 1; }
-        .request-panel { height: 30%; background: white; padding: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 10; font-family: 'Outfit', sans-serif; }
+        #app-view {
+            display: none;
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+
+        #map {
+            height: 70%;
+            width: 100%;
+            z-index: 1;
+        }
+
+        .request-panel {
+            height: 30%;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            font-family: 'Outfit', sans-serif;
+            overflow-y: auto;
+        }
+
+        .nearby-drivers {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .driver-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dotted #eee;
+        }
+
+        .driver-dist {
+            font-weight: 600;
+            color: #10b981;
+            font-size: 13px;
+        }
     </style>
 </head>
+
 <body>
 
     <!-- Auth Screen -->
@@ -33,6 +120,7 @@
         <div class="auth-box">
             <input type="text" id="auth-user" class="input-field" placeholder="Username">
             <input type="password" id="auth-pass" class="input-field" placeholder="Password">
+            <input type="text" id="auth-phone" class="input-field" placeholder="Phone Number" style="display:none">
             <button class="action-btn" onclick="handleAuth()">Login</button>
             <p class="switch-link" onclick="toggleAuthMode()">New here? Create Account</p>
             <div id="auth-msg" style="color:red; font-size:14px; margin-top:10px;"></div>
@@ -50,10 +138,22 @@
             </div>
             <div style="display:flex; gap:10px; margin-bottom:10px;">
                 <input id="dest" class="input-field" placeholder="🏁 Enter Destination">
-                <button class="action-btn" style="width:auto; background:#10b981;" onclick="geocodeAndSet('dest')">Set</button>
+                <button class="action-btn" style="width:auto; background:#10b981;"
+                    onclick="geocodeAndSet('dest')">Set</button>
             </div>
-            <button id="requestBtn" class="action-btn" style="background:#ccc; cursor:not-allowed;" disabled onclick="requestRide()">REQUEST RIDE</button>
-            <div id="status" style="margin-top:10px; font-size:14px; color:#666;"></div>
+            <button id="requestBtn" class="action-btn" style="background:#ccc; cursor:not-allowed;" disabled
+                onclick="requestRide()">REQUEST RIDE</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                <div id="status" style="font-size:14px; color:#666;"></div>
+                <div id="active-ride-id" style="font-size:12px; color:#3b82f6; font-weight:bold;"></div>
+            </div>
+
+            <div id="nearby-list-container" class="nearby-drivers" style="display:none;">
+                <div
+                    style="font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 5px;">
+                    Nearby Drivers (In Order)</div>
+                <div id="nearby-list"></div>
+            </div>
         </div>
     </div>
 
@@ -64,10 +164,10 @@
         let coords = { pickup: null, dest: null };
         let markers = {};
         let routeLayer;
-        
+
         let directionsService;
         let directionsRenderer;
-        
+
         // Let's add back the Auth Logic variables and functions here properly
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
@@ -75,20 +175,31 @@
             document.querySelector('#auth-screen .switch-link').innerText = isRegisterMode ? "Have an account? Login" : "New here? Create Account";
             document.querySelector('#auth-screen h1').innerText = isRegisterMode ? "Create Account" : "Passenger Login";
             document.getElementById('auth-msg').innerText = "";
+
+            // Toggle Phone Field
+            const phoneInput = document.getElementById('auth-phone');
+            if (isRegisterMode) {
+                phoneInput.style.display = 'block';
+            } else {
+                phoneInput.style.display = 'none';
+            }
         }
 
         async function handleAuth() {
             const u = document.getElementById('auth-user').value;
             const p = document.getElementById('auth-pass').value;
+            const phone = document.getElementById('auth-phone').value;
             const msg = document.getElementById('auth-msg');
 
-            if(!u || !p) return msg.innerText = "Fill all fields";
-            
+            if (!u || !p) return msg.innerText = "Fill all fields";
+            if (isRegisterMode && !phone) return msg.innerText = "Phone number is required";
+
             msg.innerText = "Processing...";
-            
+            msg.style.color = "blue";
+
             const endpoint = isRegisterMode ? '/api/passenger/register' : '/api/auth/login';
-            const payload = isRegisterMode 
-                ? { username: u, password: p, phone: "00000000" } 
+            const payload = isRegisterMode
+                ? { username: u, password: p, phone: phone }
                 : { role: "passenger", username: u, password: p };
 
             try {
@@ -97,24 +208,38 @@
                     body: JSON.stringify({ type: isRegisterMode ? "REGISTER_PASSENGER" : "LOGIN", payload: payload })
                 });
                 const response = await res.json();
-                const data = response.payload || response; 
-                
+                const data = response.payload || response;
+
                 let allowed = false;
                 if (isRegisterMode) {
                     allowed = data.success;
                 } else {
                     allowed = data.success && data.valid;
                 }
-                
+
                 if (allowed) {
-                    passengerName = u;
-                    document.getElementById('auth-screen').style.display = 'none';
-                    document.getElementById('app-view').style.display = 'block';
-                    // Map initialized via callback
+                    if (isRegisterMode) {
+                        // Registration Successful -> Redirect to Login
+                        msg.style.color = "green";
+                        msg.innerText = "Account Created! Please Login.";
+                        setTimeout(() => {
+                            toggleAuthMode(); // Switch back to login
+                            document.getElementById('auth-user').value = u; // Pre-fill username
+                            document.getElementById('auth-pass').value = ""; // Clear password
+                        }, 1500);
+                    } else {
+                        // Login Successful -> Enter App
+                        passengerName = u;
+                        document.getElementById('auth-screen').style.display = 'none';
+                        document.getElementById('app-view').style.display = 'block';
+                        // Map initialized via callback
+                    }
                 } else {
+                    msg.style.color = "red";
                     msg.innerText = "Error: " + (data.error || "Invalid Credentials");
                 }
-            } catch(e) {
+            } catch (e) {
+                msg.style.color = "red";
                 msg.innerText = "Network Error";
             }
         }
@@ -127,13 +252,13 @@
         };
 
         function isLocationInEthiopia(lat, lng) {
-            return lat >= ET_BOUNDS.south && lat <= ET_BOUNDS.north && 
-                   lng >= ET_BOUNDS.west && lng <= ET_BOUNDS.east;
+            return lat >= ET_BOUNDS.south && lat <= ET_BOUNDS.north &&
+                lng >= ET_BOUNDS.west && lng <= ET_BOUNDS.east;
         }
 
         function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
-                center: {lat: 9.0060, lng: 38.7640},
+                center: { lat: 9.0060, lng: 38.7640 },
                 zoom: 13,
                 minZoom: 6, // Prevents zooming out to see the whole world
                 restriction: {
@@ -141,19 +266,19 @@
                     strictBounds: true
                 }
             });
-            
+
             directionsService = new google.maps.DirectionsService();
             directionsRenderer = new google.maps.DirectionsRenderer();
             directionsRenderer.setMap(map);
-            
-            map.addListener('click', function(e) {
+
+            map.addListener('click', function (e) {
                 const lat = e.latLng.lat();
                 const lng = e.latLng.lng();
-                
+
                 if (!isLocationInEthiopia(lat, lng)) {
                     document.getElementById('status').innerText = "⚠️ Forbidden: You can only select locations within Ethiopia.";
                     // Pan back to center of Ethiopia if they are lost
-                    map.setCenter({lat: 9.0060, lng: 38.7640});
+                    map.setCenter({ lat: 9.0060, lng: 38.7640 });
                     return;
                 }
 
@@ -169,33 +294,33 @@
             const input = document.getElementById(type);
             const query = input.value;
             const status = document.getElementById('status');
-            
+
             if (!query) {
                 const center = map.getCenter();
                 updateLocation(type, center.lat(), center.lng(), "...From Map Center");
                 return;
             }
-            
+
             if (query.includes(",")) {
                 const parts = query.split(",");
-                if(parts.length === 2 && !isNaN(parts[0])) {
+                if (parts.length === 2 && !isNaN(parts[0])) {
                     const lat = parseFloat(parts[0]);
                     const lon = parseFloat(parts[1]);
                     if (isLocationInEthiopia(lat, lon)) {
                         updateLocation(type, lat, lon, query);
                     } else {
-                         status.innerText = "⚠️ Location outside Ethiopia!";
+                        status.innerText = "⚠️ Location outside Ethiopia!";
                     }
                     return;
                 }
             }
 
             status.innerText = "🔍 Searching in Ethiopia: " + query + "...";
-            
+
             const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ 
+            geocoder.geocode({
                 address: query,
-                componentRestrictions: { country: 'ET' } 
+                componentRestrictions: { country: 'ET' }
             }, async (result, gStatus) => {
                 if (gStatus === 'OK' && result[0]) {
                     const loc = result[0].geometry.location;
@@ -208,9 +333,9 @@
                         if (data && data.length > 0) {
                             processGeocodeResult(type, data[0]);
                         } else {
-                             throw new Error("No results");
+                            throw new Error("No results");
                         }
-                    } catch(e) {
+                    } catch (e) {
                         try {
                             const fallbackRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=et&q=${encodeURIComponent(query)}`);
                             const fallbackData = await fallbackRes.json();
@@ -228,60 +353,60 @@
         }
 
         function processGeocodeResult(type, item) {
-             const lat = parseFloat(item.lat || item.latitude);
-             const lon = parseFloat(item.lon || item.longitude);
-             
-             if (!isLocationInEthiopia(lat, lon)) {
-                 document.getElementById('status').innerText = "⚠️ Location found is outside Ethiopia!";
-                 return;
-             }
-             
-             const name = item.display_name || item.formatted_address || "Selected Location";
-             document.getElementById('status').innerText = "✅ Found: " + name;
-             updateLocation(type, lat, lon, name); 
-        }
-        
-        function updateLocation(type, lat, lon, label) {
-             // ABSOLUTE BLOCK: Ensure no user can set a location outside Ethiopia
-             if (!isLocationInEthiopia(lat, lon)) {
-                 document.getElementById('status').innerText = "⚠️ SYSTEM BLOCK: Service only available in Ethiopia.";
-                 map.setCenter({lat: 9.0060, lng: 38.7640});
-                 return;
-             }
-             coords[type] = { lat: lat, lng: lon };
-             
-             document.getElementById(type).value = label.substring(0, 40) + (label.length>40?"...":""); 
-             
-             if (markers[type]) markers[type].setMap(null);
-             markers[type] = new google.maps.Marker({
-                 position: {lat: lat, lng: lon},
-                 map: map,
-                 title: type === 'pickup' ? "Start" : "End"
-             });
-             
-             const infoWindow = new google.maps.InfoWindow({ content: type === 'pickup' ? "Start" : "End" });
-             infoWindow.open(map, markers[type]);
+            const lat = parseFloat(item.lat || item.latitude);
+            const lon = parseFloat(item.lon || item.longitude);
 
-             map.setCenter({lat: lat, lng: lon});
-             map.setZoom(14);
-             
-             if(coords.pickup && coords.dest) {
-                 document.getElementById('requestBtn').disabled = false;
-                 document.getElementById('requestBtn').style.background = "#10b981";
-                 document.getElementById('requestBtn').style.cursor = "pointer";
-                 drawRoute();
-             }
+            if (!isLocationInEthiopia(lat, lon)) {
+                document.getElementById('status').innerText = "⚠️ Location found is outside Ethiopia!";
+                return;
+            }
+
+            const name = item.display_name || item.formatted_address || "Selected Location";
+            document.getElementById('status').innerText = "✅ Found: " + name;
+            updateLocation(type, lat, lon, name);
+        }
+
+        function updateLocation(type, lat, lon, label) {
+            // ABSOLUTE BLOCK: Ensure no user can set a location outside Ethiopia
+            if (!isLocationInEthiopia(lat, lon)) {
+                document.getElementById('status').innerText = "⚠️ SYSTEM BLOCK: Service only available in Ethiopia.";
+                map.setCenter({ lat: 9.0060, lng: 38.7640 });
+                return;
+            }
+            coords[type] = { lat: lat, lng: lon };
+
+            document.getElementById(type).value = label.substring(0, 40) + (label.length > 40 ? "..." : "");
+
+            if (markers[type]) markers[type].setMap(null);
+            markers[type] = new google.maps.Marker({
+                position: { lat: lat, lng: lon },
+                map: map,
+                title: type === 'pickup' ? "Start" : "End"
+            });
+
+            const infoWindow = new google.maps.InfoWindow({ content: type === 'pickup' ? "Start" : "End" });
+            infoWindow.open(map, markers[type]);
+
+            map.setCenter({ lat: lat, lng: lon });
+            map.setZoom(14);
+
+            if (coords.pickup && coords.dest) {
+                document.getElementById('requestBtn').disabled = false;
+                document.getElementById('requestBtn').style.background = "#10b981";
+                document.getElementById('requestBtn').style.cursor = "pointer";
+                drawRoute();
+            }
         }
 
         async function drawRoute() {
             if (!coords.pickup || !coords.dest) return;
-            
+
             if (routeLayer) routeLayer.setMap(null);
-            
+
             // 1. Draw Straight Line PREVIEW immediately
             const straightPath = [
-                {lat: coords.pickup.lat, lng: coords.pickup.lng},
-                {lat: coords.dest.lat, lng: coords.dest.lng}
+                { lat: coords.pickup.lat, lng: coords.pickup.lng },
+                { lat: coords.dest.lat, lng: coords.dest.lng }
             ];
             routeLayer = new google.maps.Polyline({
                 path: straightPath,
@@ -291,11 +416,11 @@
                 strokeWeight: 4,
                 map: map
             });
-            
+
             const bounds = new google.maps.LatLngBounds();
             straightPath.forEach(p => bounds.extend(p));
             map.fitBounds(bounds);
-            
+
             document.getElementById('status').innerText = "📍 Calculating Route...";
 
             // 2. Try Gebeta (Backend Proxy) - Efficient for local region
@@ -303,11 +428,11 @@
                 const gebetaUrl = `/api/direction?originLat=${coords.pickup.lat}&originLon=${coords.pickup.lng}&destLat=${coords.dest.lat}&destLon=${coords.dest.lng}&apiKey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55bmFtZSI6ImRlYnJlIGJlcmhhbiB1bml2ZXJzaXR5IiwiZGVzY3JpcHRpb24iOiI5YTkzOTJiNy1mMzQxLTQ3MTctOTMzYy1lMzJkNGIzYmJjMjkiLCJpZCI6IjlkMjBlNmJkLTEzOWQtNGM3OC05ZTBlLWZlZGUzZjQ1ZWZkZSIsImlzc3VlZF9hdCI6MTc2NTkxNDE2NiwiaXNzdWVyIjoiaHR0cHM6Ly9tYXBhcGkuZ2ViZXRhLmFwcCIsImp3dF9pZCI6IjAiLCJzY29wZXMiOlsiRkVBVFVSRV9BTEwiXSwidXNlcm5hbWUiOiJTdGF5SGVyZSJ9.mcVl25CuabEJSFGwFz4O8N6OznOO4dZS1Kb0hSO35_I`;
                 const res = await fetch(gebetaUrl);
                 const data = await res.json();
-                
+
                 let latlngs = [];
                 if (data.direction) latlngs = data.direction;
                 else if (Array.isArray(data)) latlngs = data;
-                
+
                 if (latlngs.length > 0) {
                     const path = latlngs.map(p => ({ lat: p[0], lng: p[1] }));
                     routeLayer.setPath(path);
@@ -315,7 +440,7 @@
                     document.getElementById('status').innerText = "✅ Route Set (Gebeta)";
                     return;
                 }
-            } catch(e) { console.warn("Gebeta failed, trying OSRM..."); }
+            } catch (e) { console.warn("Gebeta failed, trying OSRM..."); }
 
             // 3. Try OSRM (Global Open Source)
             try {
@@ -323,7 +448,7 @@
                 const p2 = coords.dest.lng + "," + coords.dest.lat;
                 const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${p1};${p2}?overview=full&geometries=geojson`);
                 const osrmData = await osrmRes.json();
-                if(osrmData.routes && osrmData.routes.length > 0) {
+                if (osrmData.routes && osrmData.routes.length > 0) {
                     const geojson = osrmData.routes[0].geometry.coordinates;
                     const path = geojson.map(c => ({ lat: c[1], lng: c[0] }));
                     routeLayer.setPath(path);
@@ -331,30 +456,136 @@
                     document.getElementById('status').innerText = "✅ Route Set (OSRM)";
                     return;
                 }
-            } catch(e) { console.error("OSRM failed:", e); }
+            } catch (e) { console.error("OSRM failed:", e); }
 
             document.getElementById('status').innerText = "⚠️ Route Preview (Direct)";
         }
 
-        function requestRide() {
-            fetch('/api/passenger', {
-                method: 'POST',
-                body: JSON.stringify({
-                    type: "REQUEST_RIDE",
-                    payload: { 
-                        username: passengerName, 
-                        pickupLat: coords.pickup.lat, 
-                        pickupLon: coords.pickup.lon,
-                        destLat: coords.dest.lat, 
-                        destLon: coords.dest.lon,
-                        pickupAddr: document.getElementById('pickup').value,
-                        destAddr: document.getElementById('dest').value
-                    }
-                })
-            });
-            document.getElementById('status').innerText = "✅ Request Sent! Searching for drivers...";
+        async function requestRide() {
+            const status = document.getElementById('status');
+            status.innerText = "⏳ Requesting ride...";
+            document.getElementById('requestBtn').disabled = true;
+
+            try {
+                const res = await fetch('/api/passenger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: "RIDE_REQUEST",
+                        payload: {
+                            username: passengerName,
+                            pickupLat: coords.pickup.lat,
+                            pickupLon: coords.pickup.lng,
+                            destLat: coords.dest.lat,
+                            destLon: coords.dest.lng,
+                            pickupAddr: document.getElementById('pickup').value,
+                            destAddr: document.getElementById('dest').value
+                        }
+                    })
+                });
+                const data = await res.json();
+                console.log("[Passenger] Ride Response:", data);
+
+                if (data.type === 'RIDE_ASSIGNMENT' || (data.payload && data.payload.success)) {
+                    status.innerText = `✅ Driver Found: ${data.payload.driverUsername}! (Ride #${data.payload.rideId})`;
+                    status.style.color = "var(--primary)";
+                    document.getElementById('active-ride-id').innerText = "Active Ride: #" + data.payload.rideId;
+                } else if (data.type === 'NO_DRIVERS_AVAILABLE') {
+                    status.innerText = "⏳ Queued: Searching for nearest drivers...";
+                    document.getElementById('active-ride-id').innerText = "Queue ID: #" + (data.payload.rideId || "Pending");
+                } else {
+                    const errorMsg = data.payload?.error || data.error || "All drivers busy";
+                    status.innerText = "❌ Request Failed: " + errorMsg;
+                    document.getElementById('requestBtn').disabled = false;
+                }
+            } catch (e) {
+                status.innerText = "❌ Network Error";
+                document.getElementById('requestBtn').disabled = false;
+            }
         }
+
+        // --- Real-time Driver Tracking & Distances ---
+        let driverMarkers = {};
+
+        async function updateNearbyDrivers() {
+            try {
+                const res = await fetch('/api/map-data');
+                const data = await res.json();
+
+                // data.drivers is array: [{username, lat, lng, available}]
+                const drivers = data.drivers || [];
+                const listRoot = document.getElementById('nearby-list');
+                const listContainer = document.getElementById('nearby-list-container');
+
+                // 1. Filter and Sort by Distance if we have a pickup ping
+                let displayDrivers = [...drivers].filter(d => d.available);
+
+                if (coords.pickup) {
+                    displayDrivers.forEach(d => {
+                        d.dist = getDistance(coords.pickup.lat, coords.pickup.lng, d.lat, d.lng);
+                    });
+                    displayDrivers.sort((a, b) => a.dist - b.dist);
+                }
+
+                // 2. Update Map Markers
+                drivers.forEach(d => {
+                    if (!driverMarkers[d.username]) {
+                        driverMarkers[d.username] = new google.maps.Marker({
+                            position: { lat: d.lat, lng: d.lng },
+                            map: map,
+                            icon: {
+                                path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                                scale: 6,
+                                fillColor: d.available ? "#10b981" : "#ef4444",
+                                fillOpacity: 0.9,
+                                strokeColor: "#ffffff",
+                                strokeWeight: 1,
+                                rotation: 0
+                            },
+                            title: d.username
+                        });
+                    } else {
+                        driverMarkers[d.username].setPosition({ lat: d.lat, lng: d.lng });
+                        driverMarkers[d.username].setIcon({
+                            ...driverMarkers[d.username].getIcon(),
+                            fillColor: d.available ? "#10b981" : "#ef4444"
+                        });
+                    }
+                });
+
+                // 3. Update List (Top 5)
+                if (displayDrivers.length > 0) {
+                    listContainer.style.display = 'block';
+                    listRoot.innerHTML = displayDrivers.slice(0, 5).map(d => `
+                        <div class="driver-item">
+                            <div class="driver-info">
+                                🚕 <b>${d.username}</b>
+                            </div>
+                            <div class="driver-dist">${d.dist ? d.dist.toFixed(1) + ' km' : 'Online'}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.style.display = 'none';
+                }
+
+            } catch (e) { console.error("Update fail:", e); }
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        setInterval(updateNearbyDrivers, 3000);
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyApQOktBocnX7Veuuj-gK-hY14cCWg13_k&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyApQOktBocnX7Veuuj-gK-hY14cCWg13_k&callback=initMap"
+        async defer></script>
 </body>
+
 </html>

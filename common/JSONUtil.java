@@ -8,43 +8,45 @@ import java.util.Map;
  * Uses manual JSON parsing to avoid external dependencies.
  */
 public class JSONUtil {
-    
+
     /**
      * Convert a Message object to JSON string
      */
     public static String toJSON(Message message) {
         StringBuilder json = new StringBuilder();
         json.append("{");
-        
+
         // Add type
         json.append("\"type\":\"").append(message.getType()).append("\",");
-        
+
         // Add payload
         json.append("\"payload\":{");
         Map<String, Object> payload = message.getPayload();
         int count = 0;
         for (Map.Entry<String, Object> entry : payload.entrySet()) {
-            if (count > 0) json.append(",");
+            if (count > 0)
+                json.append(",");
             json.append("\"").append(entry.getKey()).append("\":");
             json.append(valueToJSON(entry.getValue()));
             count++;
         }
         json.append("},");
-        
+
         // Add requestId
         json.append("\"requestId\":\"").append(message.getRequestId()).append("\",");
-        
+
         // Add timestamp
         json.append("\"timestamp\":").append(message.getTimestamp());
-        
+
         json.append("}");
         return json.toString();
     }
-    
+
     public static String toJSON(java.util.List<Map<String, Object>> list) {
         StringBuilder json = new StringBuilder("[");
         for (int i = 0; i < list.size(); i++) {
-            if (i > 0) json.append(",");
+            if (i > 0)
+                json.append(",");
             json.append(mapToJSON(list.get(i)));
         }
         json.append("]");
@@ -55,7 +57,8 @@ public class JSONUtil {
         StringBuilder json = new StringBuilder("{");
         int count = 0;
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (count > 0) json.append(",");
+            if (count > 0)
+                json.append(",");
             json.append("\"").append(entry.getKey()).append("\":");
             json.append(valueToJSON(entry.getValue()));
             count++;
@@ -63,7 +66,7 @@ public class JSONUtil {
         json.append("}");
         return json.toString();
     }
-    
+
     /**
      * Convert a value to JSON representation
      */
@@ -79,61 +82,77 @@ public class JSONUtil {
             return "\"" + escapeJSONString(value.toString()) + "\"";
         }
     }
-    
+
     /**
      * Escape special characters in JSON strings
      */
     private static String escapeJSONString(String str) {
         return str.replace("\\", "\\\\")
-                  .replace("\"", "\\\"")
-                  .replace("\n", "\\n")
-                  .replace("\r", "\\r")
-                  .replace("\t", "\\t");
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
-    
+
     /**
      * Parse JSON string to Message object
      */
     public static Message fromJSON(String json) {
         try {
             Message message = new Message();
-            
+
             // Remove outer braces
             json = json.trim();
-            if (json.startsWith("{")) json = json.substring(1);
-            if (json.endsWith("}")) json = json.substring(0, json.length() - 1);
-            
-            // Split by commas (simple parser, doesn't handle nested objects)
+            if (json.startsWith("{"))
+                json = json.substring(1);
+            if (json.endsWith("}"))
+                json = json.substring(0, json.length() - 1);
+
+            // Split by commas
             String[] parts = splitJSON(json);
-            
+
             for (String part : parts) {
                 String[] keyValue = part.split(":", 2);
-                if (keyValue.length != 2) continue;
-                
+                if (keyValue.length != 2)
+                    continue;
+
                 String key = keyValue[0].trim().replace("\"", "");
                 String value = keyValue[1].trim();
-                
-                if (key.equals("type")) {
-                    String typeStr = value.replace("\"", "");
-                    message.setType(MessageType.valueOf(typeStr));
-                } else if (key.equals("payload")) {
-                    Map<String, Object> payload = parsePayload(value);
-                    message.setPayload(payload);
-                } else if (key.equals("requestId")) {
-                    message.setRequestId(value.replace("\"", ""));
-                } else if (key.equals("timestamp")) {
-                    message.setTimestamp(Long.parseLong(value));
+
+                try {
+                    if (key.equals("type")) {
+                        String typeStr = value.replace("\"", "").trim();
+                        message.setType(MessageType.valueOf(typeStr));
+                    } else if (key.equals("payload")) {
+                        Map<String, Object> payload = parsePayload(value);
+                        message.setPayload(payload);
+                    } else if (key.equals("requestId")) {
+                        message.setRequestId(value.replace("\"", "").trim());
+                    } else if (key.equals("timestamp")) {
+                        message.setTimestamp(Long.parseLong(value.trim()));
+                    }
+                } catch (Exception e) {
+                    try (java.io.FileWriter fw = new java.io.FileWriter("gateway_log.txt", true)) {
+                        fw.write("\nERROR parsing field '" + key + "': " + e.getMessage() + "\n");
+                    } catch (Exception ex) {
+                    }
+                    throw e;
                 }
             }
-            
+
             return message;
         } catch (Exception e) {
-            System.err.println("Error parsing JSON: " + e.getMessage());
-            e.printStackTrace();
+            try (java.io.FileWriter fw = new java.io.FileWriter("gateway_log.txt", true)) {
+                fw.write("\nJSON parsing failed: " + e.getMessage() + "\n");
+                java.io.PrintWriter pw = new java.io.PrintWriter(fw);
+                e.printStackTrace(pw);
+                fw.write("\n");
+            } catch (Exception ex) {
+            }
             return null;
         }
     }
-    
+
     /**
      * Split JSON by commas, respecting nested structures
      */
@@ -143,59 +162,67 @@ public class JSONUtil {
         int bracketCount = 0;
         boolean inString = false;
         StringBuilder current = new StringBuilder();
-        
+
         for (int i = 0; i < json.length(); i++) {
             char c = json.charAt(i);
-            
+
             if (c == '"' && (i == 0 || json.charAt(i - 1) != '\\')) {
                 inString = !inString;
             }
-            
+
             if (!inString) {
-                if (c == '{') braceCount++;
-                if (c == '}') braceCount--;
-                if (c == '[') bracketCount++;
-                if (c == ']') bracketCount--;
-                
+                if (c == '{')
+                    braceCount++;
+                if (c == '}')
+                    braceCount--;
+                if (c == '[')
+                    bracketCount++;
+                if (c == ']')
+                    bracketCount--;
+
                 if (c == ',' && braceCount == 0 && bracketCount == 0) {
                     parts.add(current.toString());
                     current = new StringBuilder();
                     continue;
                 }
             }
-            
+
             current.append(c);
         }
-        
+
         if (current.length() > 0) {
             parts.add(current.toString());
         }
-        
+
         return parts.toArray(new String[0]);
     }
-    
+
     /**
      * Parse payload object
      */
     private static Map<String, Object> parsePayload(String payloadStr) {
         Map<String, Object> payload = new HashMap<>();
-        
+
         // Remove outer braces
         payloadStr = payloadStr.trim();
-        if (payloadStr.startsWith("{")) payloadStr = payloadStr.substring(1);
-        if (payloadStr.endsWith("}")) payloadStr = payloadStr.substring(0, payloadStr.length() - 1);
-        
-        if (payloadStr.trim().isEmpty()) return payload;
-        
+        if (payloadStr.startsWith("{"))
+            payloadStr = payloadStr.substring(1);
+        if (payloadStr.endsWith("}"))
+            payloadStr = payloadStr.substring(0, payloadStr.length() - 1);
+
+        if (payloadStr.trim().isEmpty())
+            return payload;
+
         String[] parts = splitJSON(payloadStr);
-        
+
         for (String part : parts) {
             String[] keyValue = part.split(":", 2);
-            if (keyValue.length != 2) continue;
-            
+            if (keyValue.length != 2)
+                continue;
+
             String key = keyValue[0].trim().replace("\"", "");
             String value = keyValue[1].trim();
-            
+
             // Parse value type
             if (value.equals("null")) {
                 payload.put(key, null);
@@ -216,10 +243,10 @@ public class JSONUtil {
                 }
             }
         }
-        
+
         return payload;
     }
-    
+
     /**
      * Create error message
      */
@@ -228,7 +255,7 @@ public class JSONUtil {
         message.addPayload("error", errorMsg);
         return message;
     }
-    
+
     /**
      * Create success message
      */
