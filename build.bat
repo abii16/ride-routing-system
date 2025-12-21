@@ -35,6 +35,7 @@ echo [3/5] Compiling service classes...
 javac -cp ".;lib\mysql-connector-j-9.2.0.jar" -d . services\database\*.java
 javac -cp ".;lib\mysql-connector-j-9.2.0.jar" -d . services\driver\*.java
 javac -cp ".;lib\mysql-connector-j-9.2.0.jar" -d . services\dispatch\*.java
+javac -cp ".;lib\mysql-connector-j-9.2.0.jar" -d . services\gateway\*.java
 if %ERRORLEVEL% NEQ 0 (
     echo ERROR: Failed to compile service classes
     pause
