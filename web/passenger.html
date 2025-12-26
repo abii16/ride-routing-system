@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Passenger App | Gebeta Maps</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -109,6 +111,7 @@
             color: #10b981;
             font-size: 13px;
         }
+        .iti { width: 100%; margin-bottom: 10px; }
     </style>
 </head>
 
@@ -120,7 +123,7 @@
         <div class="auth-box">
             <input type="text" id="auth-user" class="input-field" placeholder="Username">
             <input type="password" id="auth-pass" class="input-field" placeholder="Password">
-            <input type="text" id="auth-phone" class="input-field" placeholder="Phone Number" style="display:none">
+            <input type="tel" id="auth-phone" class="input-field">
             <button class="action-btn" onclick="handleAuth()">Login</button>
             <p class="switch-link" onclick="toggleAuthMode()">New here? Create Account</p>
             <div id="auth-msg" style="color:red; font-size:14px; margin-top:10px;"></div>
@@ -167,6 +170,18 @@
 
         let directionsService;
         let directionsRenderer;
+        
+        // Initialize ITI
+        const phoneInput = document.querySelector("#auth-phone");
+        const iti = window.intlTelInput(phoneInput, {
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+            onlyCountries: ["et"],
+            separateDialCode: true,
+            initialCountry: "et"
+        });
+        
+        // Hide wrapper initially
+        phoneInput.closest('.iti').style.display = 'none';
 
         // Let's add back the Auth Logic variables and functions here properly
         function toggleAuthMode() {
@@ -177,22 +192,24 @@
             document.getElementById('auth-msg').innerText = "";
 
             // Toggle Phone Field
-            const phoneInput = document.getElementById('auth-phone');
+            const wrapper = phoneInput.closest('.iti');
             if (isRegisterMode) {
-                phoneInput.style.display = 'block';
+                wrapper.style.display = 'block';
             } else {
-                phoneInput.style.display = 'none';
+                wrapper.style.display = 'none';
             }
         }
 
         async function handleAuth() {
             const u = document.getElementById('auth-user').value;
             const p = document.getElementById('auth-pass').value;
-            const phone = document.getElementById('auth-phone').value;
+            const phone = iti.getNumber();
             const msg = document.getElementById('auth-msg');
 
             if (!u || !p) return msg.innerText = "Fill all fields";
-            if (isRegisterMode && !phone) return msg.innerText = "Phone number is required";
+            if (isRegisterMode) {
+                if (!iti.isValidNumber()) return msg.innerText = "Invalid phone number";
+            }
 
             msg.innerText = "Processing...";
             msg.style.color = "blue";

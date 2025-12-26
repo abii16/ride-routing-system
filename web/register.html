@@ -70,7 +70,10 @@
       margin-top: 10px;
       display: none;
     }
+    .iti { width: 100%; margin: 8px 0; }
   </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
 </head>
 
 <body>
@@ -85,7 +88,7 @@
 
     <input type="text" id="username" placeholder="Username">
     <input type="password" id="password" placeholder="Password">
-    <input type="text" id="phone" placeholder="Phone Number">
+    <input type="tel" id="phone">
 
     <button onclick="register()">Register</button>
     <p class="error" id="msg"></p>
@@ -96,12 +99,20 @@
 
   <script>
     const API_URL = "http://localhost:5000/api";
+    
+    const phoneInput = document.querySelector("#phone");
+    const iti = window.intlTelInput(phoneInput, {
+      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+      onlyCountries: ["et"],
+      separateDialCode: true,
+      initialCountry: "et"
+    });
 
     async function register() {
       const role = document.getElementById('role').value;
       const user = document.getElementById('username').value;
       const pass = document.getElementById('password').value;
-      const phone = document.getElementById('phone').value;
+      const phone = iti.getNumber();
       const msg = document.getElementById('msg');
 
       if (role === "DRIVER") {
@@ -114,6 +125,12 @@
         msg.innerText = "Please fill all fields";
         return;
       }
+      
+      if (!iti.isValidNumber()) {
+        msg.style.display = 'block';
+        msg.innerText = "Invalid phone number";
+        return;
+      }
 
       msg.innerText = "Registering...";
       msg.style.display = 'block';
@@ -121,7 +138,7 @@
 
       try {
         // Sending Register Request
-        const res = await fetch(`${API_URL}?cmd=REGISTER&role=${role}&name=${user}&pass=${pass}&phone=${phone}`);
+        const res = await fetch(`${API_URL}?cmd=REGISTER&role=${role}&name=${user}&pass=${pass}&phone=${encodeURIComponent(phone)}`);
         const data = await res.json();
 
         if (data.status === "registered") {
