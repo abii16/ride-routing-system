@@ -15,6 +15,6 @@ echo Make sure Database Service is running on port 5002
 echo.
 pause
 
-java -cp ".;lib\mysql-connector-j-9.2.0.jar" services.driver.DriverServiceServer
+java -cp .;lib\mysql-connector-j-9.2.0.jar services.driver.DriverServiceServer
 
 pause

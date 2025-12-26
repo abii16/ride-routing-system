@@ -25,6 +25,6 @@ echo MySQL is running.
 echo Starting Database Service...
 echo.
 
-java -cp ".;lib\mysql-connector-j-9.2.0.jar" services.database.DatabaseServiceServer
+java -cp .;lib\mysql-connector-j-9.2.0.jar services.database.DatabaseServiceServer
 
 pause

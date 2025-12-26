@@ -16,6 +16,6 @@ echo   - Driver Service (ports 5001, 5003)
 echo.
 pause
 
-java -cp ".;lib\mysql-connector-j-9.2.0.jar" services.dispatch.DispatchServer
+java -cp .;lib\mysql-connector-j-9.2.0.jar services.dispatch.DispatchServer
 
 pause
