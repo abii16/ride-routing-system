@@ -7,11 +7,11 @@ echo ===================================================
 echo.
 echo [1/3] Starting RideSharingServer...
 start "Ride Sharing SERVER" cmd /k "java -cp ".;lib/mysql-connector-j-9.2.0.jar" server.RideSharingServer"
-timeout /t 2 >nul
+"%SystemRoot%\System32\timeout.exe" /t 2 /nobreak >nul
 
 echo [2/3] Launching Web Map...
 start "" "c:\Users\PC\Documents\disributed\web\index.html"
-timeout /t 1 >nul
+"%SystemRoot%\System32\timeout.exe" /t 1 /nobreak >nul
 
 echo [3/3] Starting Clients...
 start "PASSENGER Client" cmd /k "java client.PassengerClient"

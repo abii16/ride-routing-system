@@ -21,15 +21,15 @@ pause
 
 echo Starting Database Service...
 start "Database Service (Port 5002)" cmd /k "start-database-service.bat"
-timeout /t 3
+"%SystemRoot%\System32\timeout.exe" /t 3 /nobreak >nul
 
 echo Starting Driver Service...
 start "Driver Service (Port 5001, 5003)" cmd /k "start-driver-service.bat"
-timeout /t 3
+"%SystemRoot%\System32\timeout.exe" /t 3 /nobreak >nul
 
 echo Starting Dispatch Server...
 start "Dispatch Server (Port 5000)" cmd /k "start-dispatch-server.bat"
-timeout /t 2
+"%SystemRoot%\System32\timeout.exe" /t 2 /nobreak >nul
 
 echo.
 echo ========================================

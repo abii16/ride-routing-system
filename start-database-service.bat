@@ -25,6 +25,9 @@ echo MySQL is running.
 echo Starting Database Service...
 echo.
 
-java -cp .;lib\mysql-connector-j-9.2.0.jar services.database.DatabaseServiceServer
+call "%~dp0build-java.bat"
+if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+
+java -cp out;lib\mysql-connector-j-9.2.0.jar services.database.DatabaseServiceServer
 
 pause
